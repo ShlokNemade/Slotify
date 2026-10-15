@@ -59,3 +59,36 @@ export const createBusinessSchema = z.object({
 export const updateBusinessSchema = createBusinessSchema.partial().extend({
   hours: businessHoursSchema.optional(),
 });
+
+/**
+ * Platform admin business approval/rejection schema.
+ */
+export const reviewBusinessSchema = z
+  .object({
+    status: z.enum([BusinessStatus.APPROVED, BusinessStatus.REJECTED]),
+    notes: z.string().trim().max(500).default(''),
+  })
+  .refine(
+    (data) => {
+      if (data.status === BusinessStatus.REJECTED && !data.notes) {
+        return false;
+      }
+      return true;
+    },
+    { message: 'Rejection reason is required when rejecting a business', path: ['notes'] }
+  );
+
+/**
+ * Public directory search & filtering query schema.
+ */
+export const directoryQuerySchema = z.object({
+  category: z.string().trim().optional(),
+  search: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  country: z.string().trim().optional(),
+  minPrice: z.coerce.number().nonnegative().optional(),
+  maxPrice: z.coerce.number().nonnegative().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+});
+

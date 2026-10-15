@@ -6,8 +6,11 @@ import {
   slugSchema,
   timeZoneSchema,
   createBusinessSchema,
+  reviewBusinessSchema,
+  directoryQuerySchema,
   createBookingSchema,
   UserRole,
+  BusinessStatus,
 } from '../src/index.js';
 
 describe('Shared Domain Schemas', () => {
@@ -90,6 +93,38 @@ describe('Shared Domain Schemas', () => {
       assert.equal(result.defaultSlotIntervalMinutes, 30);
       assert.equal(result.minNoticeHours, 2);
       assert.equal(result.maxHorizonDays, 60);
+    });
+
+    it('validates business review schema requires notes on rejection', () => {
+      const validApprove = reviewBusinessSchema.parse({
+        status: BusinessStatus.APPROVED,
+      });
+      assert.equal(validApprove.status, BusinessStatus.APPROVED);
+
+      const validReject = reviewBusinessSchema.parse({
+        status: BusinessStatus.REJECTED,
+        notes: 'Incomplete business license documents',
+      });
+      assert.equal(validReject.status, BusinessStatus.REJECTED);
+
+      assert.throws(
+        () =>
+          reviewBusinessSchema.parse({
+            status: BusinessStatus.REJECTED,
+            notes: '',
+          }),
+        /Rejection reason is required/
+      );
+    });
+
+    it('validates directory query params with defaults', () => {
+      const parsed = directoryQuerySchema.parse({
+        category: 'Spa',
+        search: 'massage',
+      });
+      assert.equal(parsed.page, 1);
+      assert.equal(parsed.limit, 20);
+      assert.equal(parsed.category, 'Spa');
     });
   });
 
