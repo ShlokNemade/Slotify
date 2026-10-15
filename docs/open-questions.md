@@ -3,6 +3,7 @@
 Avoid restarting broad preference rounds. Resolve only material correctness/security/feasibility gaps; document sensible defaults for minor details.
 
 ## High priority
+
 1. **Booking concurrency:** choose and prove how overlapping confirmed assignments are prevented. MongoDB transactions alone are not assumed sufficient for arbitrary interval overlap. Test concurrent writes.
 2. **Stronger edge coordination:** evaluate Durable Objects or another coordinator for scopes where KV is insufficient; verify quotas and local simulation.
 3. **Rate-limit overshoot:** define lease size, active Worker assumptions, expiry, partition behavior, and in-flight requests; derive or measure bounds.
@@ -18,6 +19,7 @@ Avoid restarting broad preference rounds. Resolve only material correctness/secu
 13. **CAPTCHA provider:** choose only if needed; retain adapter and local test mode.
 
 ## Values to measure or confirm
+
 - Numeric rate-limit defaults and platform maxima.
 - Booking horizon/minimum-notice defaults.
 - Benchmark thresholds after baseline run.
@@ -26,4 +28,5 @@ Avoid restarting broad preference rounds. Resolve only material correctness/secu
 - Free-tier quotas/provider limits at implementation time.
 
 ## Fixed constraints to preserve
+
 No payments; global customer accounts; no staff login; booking confirmation independent of notifications; atomic multi-service booking; no silent changes to confirmed bookings; business-specific restrictions do not automatically propagate; shared IP alone is not proof of abuse; rate limiting is not booking concurrency control; local demo needs no paid service.

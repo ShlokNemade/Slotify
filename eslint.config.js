@@ -1,6 +1,12 @@
 export default [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '.agents/**', '**/.wrangler/**'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/coverage/**',
+      '.agents/**',
+      '**/.wrangler/**',
+    ],
   },
   {
     files: ['**/*.js', '**/*.jsx'],

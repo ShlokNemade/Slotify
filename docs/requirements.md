@@ -3,6 +3,7 @@
 **Status:** Consolidated proposal from requirements rounds 1–26.
 
 ## Product and roles
+
 Slotify is a multi-tenant appointment platform. Independent businesses configure services, qualified staff, hours, availability, and public profiles. Customers have one reusable account across businesses. Payments are out of scope.
 
 - **Customer:** email/password registration, email verification before booking, browse providers, book one or multiple services, manage own bookings, view notification history.
@@ -11,6 +12,7 @@ Slotify is a multi-tenant appointment platform. Independent businesses configure
 - **Platform admin:** separate admin area; secure local bootstrap/seed; no public admin registration; tenant approval and platform health/rate-limit monitoring.
 
 ## Accounts and sessions
+
 - Server-managed sessions with HttpOnly cookies; revocable sessions and logout.
 - Invalidate sessions after sensitive account changes.
 - Verification links expire after 24 hours (proposed).
@@ -19,6 +21,7 @@ Slotify is a multi-tenant appointment platform. Independent businesses configure
 - Cookie settings, CSRF protection, password hashing, token storage, and session lifetime must be specified in security design.
 
 ## Directory and public profiles
+
 - Filter by category, location, service, date, and displayed price.
 - Manual location search plus optional device location with permission.
 - Sort nearest-first when location is available; otherwise relevance.
@@ -29,6 +32,7 @@ Slotify is a multi-tenant appointment platform. Independent businesses configure
 - Never expose existing appointment details, customer identities, private staff schedules, or internal abuse signals.
 
 ## Availability
+
 - Weekly recurring business hours plus date-specific exceptions.
 - Staff shifts, breaks, leave, holidays, and one-off overrides.
 - Business-wide, staff-specific, and service-specific blocks.
@@ -39,6 +43,7 @@ Slotify is a multi-tenant appointment platform. Independent businesses configure
 - Per-service buffers can be placed before, between, or after services.
 
 ## Booking rules
+
 - Customer chooses service order; services run sequentially and can use different qualified staff.
 - For each service, customer chooses named staff or “Any available,” resolved to an actual eligible staff member.
 - If only some selected services are available, explain which are unavailable and offer the available subset or another time for all. Nothing is booked until explicit confirmation.
@@ -54,7 +59,9 @@ Slotify is a multi-tenant appointment platform. Independent businesses configure
 - Preserve booking history. Snapshotting service details at booking time is recommended but needs confirmation.
 
 ## Abuse controls
+
 Business-configurable within platform limits:
+
 - Active upcoming booking cap
 - Cooldown after successful booking
 - Repeated booking/cancellation-cycle threshold
@@ -70,6 +77,7 @@ Business-configurable within platform limits:
 - Example numeric thresholds discussed earlier are illustrative, not confirmed values.
 
 ## Notifications
+
 - Email and persistent in-app notifications, with read/unread state and history.
 - Local email sandbox such as Mailpit; no real emails during local development. Provider adapter for optional deployment.
 - Reminders at 24 hours and 2 hours; recipients are customer and owner, not staff.
@@ -80,11 +88,13 @@ Business-configurable within platform limits:
 - Notification failure never reverses booking confirmation.
 
 ## Dashboards
+
 Owner sections: Calendar, Bookings, Services, Staff, Customers, Availability, Analytics, Protection, Settings.
 Analytics: booking trends, cancellations, no-shows, popular services, staff utilization, abuse stats.
 Admin area: platform health, tenant management, rate-limit monitoring, queue/notification health.
 
 ## High-level acceptance criteria
+
 1. Unverified customers cannot book.
 2. Unapproved/incomplete businesses are not publicly listed.
 3. Customers reuse accounts across businesses.

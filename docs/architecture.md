@@ -3,6 +3,7 @@
 **Status:** proposed architecture. Validate provider semantics and concurrency assumptions before implementation.
 
 ## Components
+
 - React + Vite + JavaScript customer/owner UI and separate admin area.
 - Cloudflare Worker edge layer for route classification and rate limiting.
 - Cloudflare KV for suitable eventually consistent state/configuration, not atomic global counters.
@@ -13,6 +14,7 @@
 - Mailpit/local email sandbox; configurable provider adapter for optional deployment.
 
 ## Booking write path
+
 1. Client submits request with idempotency key.
 2. API authenticates, checks verification, tenant scope, booking policy, and abuse restrictions.
 3. API recalculates service order, durations, buffers, staff qualifications, schedules, and availability.
@@ -25,9 +27,11 @@
 MongoDB transactions alone are not assumed to prevent arbitrary interval overlap. The exact conflict-prevention mechanism must be selected and proven by concurrent tests.
 
 ## Availability read path
+
 Expand recurring schedules and exceptions in the business time zone; filter candidates by interval, service duration/buffers, staff eligibility, shifts, breaks, leave, business closures, notice/horizon, and existing bookings. Return bookable slots only. Results are advisory until the write path revalidates.
 
 ## Background jobs
+
 - Outbox publisher and reconciliation
 - Notification workers with retry/backoff/dead-letter handling
 - Reminder scheduling at 24h and 2h, recalculated after changes
@@ -36,6 +40,7 @@ Expand recurring schedules and exceptions in the business time zone; filter cand
 - Monitoring for stuck outbox entries, queue failures, missing/duplicate batches
 
 ## Boundaries and failure behavior
+
 - Every tenant-owned record and owner operation is business-scoped.
 - Platform-admin authorization is separate.
 - Public APIs return allowlisted published data.

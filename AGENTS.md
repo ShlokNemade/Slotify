@@ -5,6 +5,7 @@ Slotify follows strict coding invariants and phased development workflows.
 See full agent instructions in [`docs/AGENTS.md`](./docs/AGENTS.md).
 
 ## Critical Invariants
+
 1. **JavaScript Requirement:** Pure JavaScript throughout (`.js`, `.jsx`). No TypeScript.
 2. **Authoritative Backend:** Booking validation and database commits are authoritative; rate limiting does not prevent double-booking.
 3. **Atomic Multi-Service:** Multi-service bookings commit all segments or none.

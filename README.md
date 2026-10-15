@@ -3,6 +3,7 @@
 Slotify is a multi-tenant appointment-booking platform and a system-design demonstration of edge-based distributed rate limiting.
 
 ## Stack
+
 - **Frontend:** React + Vite + JavaScript (JSX)
 - **API:** Node.js + Express + JavaScript (ESM)
 - **Database:** MongoDB (single-node replica set `rs0` with transactions)
@@ -11,7 +12,9 @@ Slotify is a multi-tenant appointment-booking platform and a system-design demon
 - **Email Sandbox:** Mailpit for local development
 
 ## Documentation
+
 All architectural decisions, product specifications, and operational guides are in [`docs/`](./docs/):
+
 - [`docs/AGENTS.md`](./docs/AGENTS.md) — Coding agent invariants and rules
 - [`docs/requirements.md`](./docs/requirements.md) — Product requirements and business rules
 - [`docs/architecture.md`](./docs/architecture.md) — System boundaries and components
@@ -25,7 +28,9 @@ All architectural decisions, product specifications, and operational guides are 
 - [`docs/implementation-log/`](./docs/implementation-log/) — Historical phase logs
 
 ## Quick Start
+
 Detailed setup instructions are maintained in phase documentation.
+
 ```bash
 # 1. Start infrastructure (MongoDB Replica Set, RabbitMQ, Mailpit)
 docker compose up -d

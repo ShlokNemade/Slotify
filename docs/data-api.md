@@ -3,6 +3,7 @@
 **Status:** proposed logical model, not a frozen schema.
 
 ## Data principles
+
 - Business-owned records are tenant-scoped with `businessId`.
 - Customer identity is global; bookings link `customerId` and `businessId`.
 - Store appointment instants consistently (UTC proposed) and retain the business IANA zone.
@@ -11,6 +12,7 @@
 - A normal index does not enforce arbitrary interval non-overlap; concurrency strategy must be documented separately.
 
 ## Proposed entities
+
 - **User:** normalized unique email, password hash, verification timestamp, account status.
 - **Session:** user, safe session identifier/hash, creation/expiry/revocation timestamps.
 - **Business:** owner, slug, approval/publication status, profile, location, time zone, hours, booking horizon.
@@ -27,9 +29,11 @@
 - **RateLimitUsage/SyncBatch:** namespace, key identifier/hash, window, batch ID/version, acknowledgement state.
 
 ## Index candidates
+
 Unique normalized user email; unique active business slug; booking indexes by business/status/start, customer/start, business/staff/start; unique idempotency scope/key; outbox status/next attempt; notifications by user/created; active restrictions by business/customer/status/expiry. Validate against query plans. Indexes alone do not prevent overlapping intervals.
 
 ## API conventions
+
 - Versioned JSON API, e.g. `/api/v1`.
 - Server-side request validation and authorization.
 - Consistent safe error envelope and correlation ID.
@@ -39,6 +43,7 @@ Unique normalized user email; unique active business slug; booking indexes by bu
 - Never trust client-provided roles, owner IDs, duration, price, staff eligibility, or availability.
 
 ## Candidate route groups
+
 Auth: register customer/owner, verify email, login/logout/session, request/complete password reset.
 Public: directory, business by slug, services, availability.
 Customer: own bookings, create/cancel/reschedule, accept/reject owner proposal, notifications.

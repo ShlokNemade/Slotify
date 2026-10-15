@@ -3,6 +3,7 @@
 Slotify is a multi-tenant appointment-booking platform and a demonstration of edge-based distributed rate limiting. This is a **requirements and design proposal**, not an instruction to begin implementation.
 
 ## Stack proposed
+
 - Frontend: React + Vite + JavaScript
 - API: Node.js + Express + JavaScript
 - Database: MongoDB with transactions and indexes
@@ -11,6 +12,7 @@ Slotify is a multi-tenant appointment-booking platform and a demonstration of ed
 - Delivery: local demonstrable setup first; optional free-tier deployment documented
 
 ## Documents
+
 - `docs/AGENTS.md` — AI coding-agent workflow and invariants
 - `docs/requirements.md` — product requirements and business rules
 - `docs/ui-ux.md` — design direction, navigation, and page behavior
@@ -24,6 +26,7 @@ Slotify is a multi-tenant appointment-booking platform and a demonstration of ed
 - `docs/open-questions.md` — remaining technical decisions
 
 ## Non-negotiable boundaries
+
 1. Rate limiting is not booking concurrency control.
 2. Backend booking validation and commit are authoritative.
 3. Multi-service booking is all-or-nothing.

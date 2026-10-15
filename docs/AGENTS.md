@@ -9,6 +9,7 @@
 - Update tests and docs with behavior changes.
 
 ## Invariants
+
 - Enforce authorization server-side on every protected operation.
 - Customer identity is reusable across businesses; business restrictions stay business-scoped.
 - Staff are owner-managed records, with no separate staff login in the proposed scope.
@@ -22,4 +23,5 @@
 - Public pages must not expose private appointments, customer data, internal schedules, or abuse signals.
 
 ## Expected verification
+
 Unit and integration tests, browser end-to-end tests, booking concurrency tests, and rate-limit fault-injection tests as relevant to each phase.
