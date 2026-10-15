@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { objectIdSchema, slugSchema, timeZoneSchema } from './common.js';
+import { slugSchema, timeZoneSchema } from './common.js';
 
 export const BusinessStatus = {
   DRAFT: 'draft',

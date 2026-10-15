@@ -33,7 +33,10 @@ describe('Shared Domain Schemas', () => {
         fullName: 'Test User',
       };
 
-      assert.throws(() => registerUserSchema.parse(input), /Password must be at least 8 characters/);
+      assert.throws(
+        () => registerUserSchema.parse(input),
+        /Password must be at least 8 characters/
+      );
     });
 
     it('rejects invalid email addresses', () => {
@@ -121,7 +124,10 @@ describe('Shared Domain Schemas', () => {
         segments: [],
       };
 
-      assert.throws(() => createBookingSchema.parse(input), /At least one service segment is required/);
+      assert.throws(
+        () => createBookingSchema.parse(input),
+        /At least one service segment is required/
+      );
     });
   });
 });

@@ -34,19 +34,28 @@ export const slugSchema = z
   .toLowerCase()
   .min(3, 'Slug must be at least 3 characters')
   .max(64, 'Slug cannot exceed 64 characters')
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must consist of lowercase alphanumeric words separated by hyphens');
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Slug must consist of lowercase alphanumeric words separated by hyphens'
+  );
 
 /**
  * Valid IANA time zone identifier validator.
  */
-export const timeZoneSchema = z.string().trim().refine((tz) => {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-}, { message: 'Invalid IANA time zone' });
+export const timeZoneSchema = z
+  .string()
+  .trim()
+  .refine(
+    (tz) => {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: tz });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Invalid IANA time zone' }
+  );
 
 /**
  * Standard pagination query schema.

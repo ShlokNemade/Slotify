@@ -24,11 +24,7 @@ export const restrictionSchema = z.object({
     RestrictionCategory.NO_SHOW_THRESHOLD,
     RestrictionCategory.MANUAL_BLOCK,
   ]),
-  status: z.enum([
-    RestrictionStatus.ACTIVE,
-    RestrictionStatus.EXPIRED,
-    RestrictionStatus.LIFTED,
-  ]),
+  status: z.enum([RestrictionStatus.ACTIVE, RestrictionStatus.EXPIRED, RestrictionStatus.LIFTED]),
   reason: z.string().trim().min(3).max(500),
   expiresAt: z.date().or(z.string()).nullable().optional(),
   createdAt: z.date().or(z.string()),

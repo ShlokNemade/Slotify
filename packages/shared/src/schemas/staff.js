@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { objectIdSchema } from './common.js';
 import { dayOfWeekSchema, timeWindowSchema } from './business.js';
 
 export const staffShiftSchema = z.object({

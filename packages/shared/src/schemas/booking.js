@@ -36,26 +36,30 @@ export const bookingSegmentSchema = z.object({
 export const createBookingSchema = z.object({
   businessId: objectIdSchema,
   idempotencyKey: z.string().trim().min(8).max(64),
-  segments: z.array(
-    z.object({
-      serviceId: objectIdSchema,
-      staffId: objectIdSchema.or(z.literal('any')),
-      startTime: isoDateSchema,
-    })
-  ).min(1, 'At least one service segment is required'),
+  segments: z
+    .array(
+      z.object({
+        serviceId: objectIdSchema,
+        staffId: objectIdSchema.or(z.literal('any')),
+        startTime: isoDateSchema,
+      })
+    )
+    .min(1, 'At least one service segment is required'),
 });
 
 /**
  * Reschedule booking request.
  */
 export const rescheduleBookingSchema = z.object({
-  segments: z.array(
-    z.object({
-      serviceId: objectIdSchema,
-      staffId: objectIdSchema.or(z.literal('any')),
-      startTime: isoDateSchema,
-    })
-  ).min(1),
+  segments: z
+    .array(
+      z.object({
+        serviceId: objectIdSchema,
+        staffId: objectIdSchema.or(z.literal('any')),
+        startTime: isoDateSchema,
+      })
+    )
+    .min(1),
 });
 
 /**
