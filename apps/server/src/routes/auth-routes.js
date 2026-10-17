@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { registerUser, loginUser, verifyEmail, revokeSession } from '../services/auth-service.js';
+import { registerUser, loginUser, verifyEmail, revokeSession, requestPasswordReset, completePasswordReset } from '../services/auth-service.js';
 import { validate } from '../middleware/validate.js';
 import { authenticate, SESSION_COOKIE_NAME } from '../middleware/auth.js';
-import { registerUserSchema, loginUserSchema, verifyEmailSchema } from '@slotify/shared';
+import { registerUserSchema, loginUserSchema, verifyEmailSchema, requestPasswordResetSchema, resetPasswordSchema } from '@slotify/shared';
 import { config } from '../config/index.js';
 
 export const authRouter = Router();
@@ -103,6 +103,52 @@ authRouter.get('/me', authenticate, async (req, res) => {
     },
   });
 });
+
+/**
+ * Request a password reset (non-enumerating: same response for unknown emails).
+ */
+authRouter.post(
+  '/request-password-reset',
+  validate({ body: requestPasswordResetSchema }),
+  async (req, res, next) => {
+    try {
+      const result = await requestPasswordReset(req.body);
+      const responseData = { sent: result.sent };
+
+      // In non-production environments, expose the token to facilitate testing
+      if (config.NODE_ENV !== 'production' && result.resetToken) {
+        responseData.devResetToken = result.resetToken;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'If an account exists for that email, a reset link has been sent',
+        data: responseData,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * Complete a password reset with a single-use token. Revokes all sessions.
+ */
+authRouter.post(
+  '/reset-password',
+  validate({ body: resetPasswordSchema }),
+  async (req, res, next) => {
+    try {
+      await completePasswordReset(req.body);
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset. Please log in again.',
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /**
  * Verify user email address with single-use token.

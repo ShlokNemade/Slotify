@@ -146,6 +146,99 @@ export async function loginUser({ email, password, userAgent = '', ipAddress = '
 }
 
 /**
+ * Request a password reset. The response is intentionally non-enumerating:
+ * unknown emails, suspended accounts, and valid requests all return the same shape.
+ * @param {{ email: string }} data
+ * @returns {Promise<{ sent: boolean, resetToken?: string }>}
+ */
+export async function requestPasswordReset({ email }) {
+  const db = getDb();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await db.collection('users').findOne({ email: normalizedEmail });
+
+  // Non-enumerating: silently no-op when the account does not exist or is suspended.
+  if (!user || user.accountStatus === AccountStatus.SUSPENDED) {
+    return { sent: true };
+  }
+
+  const rawResetToken = randomBytes(32).toString('hex');
+  const resetTokenHash = hashToken(rawResetToken);
+  const resetExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  const now = new Date();
+
+  await db.collection('users').updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        passwordResetTokenHash: resetTokenHash,
+        passwordResetExpiresAt: resetExpiresAt,
+        updatedAt: now,
+      },
+    }
+  );
+
+  await db.collection('outbox').insertOne({
+    aggregateId: user._id,
+    aggregateType: 'user',
+    eventType: OutboxEventType.PASSWORD_RESET_REQUESTED,
+    payload: {
+      userId: user._id.toString(),
+      email: normalizedEmail,
+      fullName: user.fullName,
+      resetToken: rawResetToken,
+    },
+    status: OutboxStatus.PENDING,
+    attempts: 0,
+    createdAt: now,
+  });
+
+  return { sent: true, resetToken: rawResetToken };
+}
+
+/**
+ * Complete a password reset using a single-use token.
+ * Revokes every active session for the user (sensitive account change).
+ * @param {{ token: string, newPassword: string }} data
+ * @returns {Promise<{ reset: boolean }>}
+ */
+export async function completePasswordReset({ token, newPassword }) {
+  const db = getDb();
+  const tokenHash = hashToken(token);
+  const now = new Date();
+
+  const user = await db.collection('users').findOne({
+    passwordResetTokenHash: tokenHash,
+    passwordResetExpiresAt: { $gt: now },
+  });
+
+  if (!user) {
+    throw new ValidationError('Reset token is invalid or has expired');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+  await db.collection('users').updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        passwordHash,
+        updatedAt: now,
+      },
+      $unset: {
+        passwordResetTokenHash: '',
+        passwordResetExpiresAt: '',
+      },
+    }
+  );
+
+  // Security requirement: invalidate sessions after sensitive account changes.
+  await revokeAllUserSessions(user._id.toString());
+
+  return { reset: true };
+}
+
+/**
  * Verify a user's email address using their single-use token.
  * @param {string} token
  * @returns {Promise<{ verified: boolean, email: string }>}
