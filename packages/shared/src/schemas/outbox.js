@@ -13,6 +13,8 @@ export const OutboxEventType = {
   BOOKING_RESCHEDULED: 'booking.rescheduled',
   USER_VERIFICATION_REQUESTED: 'user.verification_requested',
   PASSWORD_RESET_REQUESTED: 'user.password_reset_requested',
+  BUSINESS_APPROVED: 'business.approved',
+  BUSINESS_REJECTED: 'business.rejected',
   REMINDER_24H: 'booking.reminder.24h',
   REMINDER_2H: 'booking.reminder.2h',
 };

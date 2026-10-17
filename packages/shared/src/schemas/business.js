@@ -79,6 +79,22 @@ export const reviewBusinessSchema = z
   );
 
 /**
+ * Platform admin business listing query schema.
+ */
+export const adminBusinessListQuerySchema = z.object({
+  status: z
+    .enum([
+      BusinessStatus.DRAFT,
+      BusinessStatus.PENDING_APPROVAL,
+      BusinessStatus.APPROVED,
+      BusinessStatus.REJECTED,
+    ])
+    .optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+/**
  * Public directory search & filtering query schema.
  */
 export const directoryQuerySchema = z.object({

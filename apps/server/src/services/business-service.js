@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db/mongo.js';
-import { ConflictError, NotFoundError } from '../errors/index.js';
+import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 import { BusinessStatus } from '@slotify/shared';
 
 const ALL_DAYS = [
@@ -108,6 +108,43 @@ export async function getBusinessById(businessId) {
 }
 
 /**
+ * Submit a business for platform review (draft or rejected → pending_approval).
+ * @param {string} businessId
+ * @returns {Promise<Record<string, unknown>>} updated business (owner-facing shape)
+ */
+export async function submitBusinessForReview(businessId) {
+  const db = getDb();
+  const current = await getBusinessById(businessId);
+
+  if (
+    current.status !== BusinessStatus.DRAFT &&
+    current.status !== BusinessStatus.REJECTED
+  ) {
+    throw new ValidationError(
+      `Business in status "${current.status}" cannot be submitted for review`
+    );
+  }
+
+  const result = await db
+    .collection('businesses')
+    .findOneAndUpdate(
+      { _id: new ObjectId(businessId) },
+      {
+        $set: {
+          status: BusinessStatus.PENDING_APPROVAL,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' }
+    );
+
+  if (!result) {
+    throw new NotFoundError('Business not found');
+  }
+  return toBusinessResponse(result);
+}
+
+/**
  * Update an owned business with a validated partial patch.
  * @param {string} businessId
  * @param {Record<string, unknown>} patch Zod-validated partial update
@@ -116,6 +153,11 @@ export async function getBusinessById(businessId) {
 export async function updateBusiness(businessId, patch) {
   const db = getDb();
   const current = await getBusinessById(businessId);
+
+  // Resubmission rule (open question #12, minimal default): any profile edit
+  // to a rejected business resubmits it for review. Draft stays draft;
+  // approved businesses remain approved (publication state unchanged).
+  const resubmit = current.status === BusinessStatus.REJECTED;
 
   // Hours arrive as a partial day-record (only provided days are present).
   // Merge with the stored hours so omitted days keep their configuration
@@ -127,6 +169,7 @@ export async function updateBusiness(businessId, patch) {
       ...(hours
         ? { hours: { ...current.hours, ...hours } }
         : {}),
+      ...(resubmit ? { status: BusinessStatus.PENDING_APPROVAL } : {}),
       updatedAt: new Date(),
     },
   };

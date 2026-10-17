@@ -3,6 +3,7 @@ import {
   createBusiness,
   getBusinessById,
   updateBusiness,
+  submitBusinessForReview,
   toBusinessResponse,
 } from '../services/business-service.js';
 import { createBusinessSchema, updateBusinessSchema } from '@slotify/shared';
@@ -50,6 +51,26 @@ businessRouter.get(
       res.status(200).json({
         success: true,
         data: { business: toBusinessResponse(business) },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * Submit a business for platform-admin review (draft/rejected → pending_approval).
+ */
+businessRouter.post(
+  '/:businessId/submit',
+  authenticate,
+  requireBusinessOwnership,
+  async (req, res, next) => {
+    try {
+      const business = await submitBusinessForReview(req.params.businessId);
+      res.status(200).json({
+        success: true,
+        data: { business },
       });
     } catch (err) {
       next(err);
