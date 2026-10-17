@@ -29,8 +29,6 @@ All architectural decisions, product specifications, and operational guides are 
 
 ## Quick Start
 
-Detailed setup instructions are maintained in phase documentation.
-
 ```bash
 # 1. Start infrastructure (MongoDB Replica Set, RabbitMQ, Mailpit)
 docker compose up -d
@@ -38,6 +36,13 @@ docker compose up -d
 # 2. Install dependencies
 npm install
 
-# 3. Run development services
-npm run dev
+# 3. Bootstrap the platform admin (local only; see .env.example)
+npm run bootstrap:admin --workspace=@slotify/server
+
+# 4. Run the API server
+npm run dev:server
+
+# Tests
+npm test                 # all workspaces
+npm run lint             # eslint
 ```

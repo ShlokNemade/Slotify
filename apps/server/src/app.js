@@ -7,6 +7,7 @@ import { authRouter } from './routes/auth-routes.js';
 import { healthRouter } from './routes/health-routes.js';
 import { adminRouter } from './routes/admin-routes.js';
 import { businessRouter } from './routes/business-routes.js';
+import { directoryRouter } from './routes/directory-routes.js';
 import { serviceRouter } from './routes/service-routes.js';
 import { staffRouter } from './routes/staff-routes.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/api/v1/businesses/:businessId/services', serviceRouter);
   app.use('/api/v1/businesses/:businessId/staff', staffRouter);
   app.use('/api/v1/admin', adminRouter);
+  app.use('/api/v1/directory', directoryRouter);
 
   // 4. Fallback 404 handler
   app.use((_req, _res, next) => {
