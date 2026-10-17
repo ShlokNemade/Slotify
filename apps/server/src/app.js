@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/index.js';
 import { authRouter } from './routes/auth-routes.js';
 import { healthRouter } from './routes/health-routes.js';
+import { businessRouter } from './routes/business-routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { NotFoundError } from './errors/index.js';
 
@@ -33,6 +34,7 @@ export function createApp() {
 
   // 3. API Route Modules
   app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/businesses', businessRouter);
 
   // 4. Fallback 404 handler
   app.use((_req, _res, next) => {
