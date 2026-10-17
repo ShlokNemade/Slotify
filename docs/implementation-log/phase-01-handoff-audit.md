@@ -18,9 +18,11 @@ On first inspection, `git status` reported **214 tracked files as deleted from t
 
 Only `docs/`, `package-lock.json`, and an untracked `.opencode/` directory survived on disk.
 
-**Assessment:** This was an accidental bulk file deletion (empty directory skeletons remained, and all content was committed in HEAD). It is consistent with a tooling/sync incident, not an intentional code change: the handoff expects Phase 01 code to exist, and `.agents/skills/*` had merely been *moved* to untracked `.opencode/skills/*` (a skills-location migration, preserved).
+**Assessment:** Two separate things happened here:
+1. **`.agents/skills/*` → `.opencode/skills/*`** — an **intentional rename/migration** (confirmed by the user after the fact). Verified by content hash: 171/175 files byte-identical to the tracked `.agents` tree; the only 3 missing files are stale `__pycache__` bytecode, and the only real content difference is `SKILL.md` referencing its own new path. The `.agents` directory was subsequently removed from tracking (`git rm`); the skills live on untracked under `.opencode/` (gitignored as local tooling). See commit that follows this audit.
+2. **The remaining deletions** (root configs, `apps/server/**`, `packages/shared/**`) were an accidental bulk file deletion: empty directory skeletons remained, and all content was committed in HEAD. Not a deliberate code change — the handoff expects Phase 01 code to exist.
 
-**Action taken:** Restored the working tree with `git restore .` (working tree → HEAD). This is non-destructive: no uncommitted content existed for any restored path; untracked `.opencode/` and `node_modules/` were untouched. Git is now clean except `?? .opencode/`.
+**Action taken:** Restored the *application code* with `git restore .` (working tree → HEAD): root configs, `apps/**`, `packages/**`, and initially also the `.agents` skill files. Nothing uncommitted existed for any restored path; untracked `.opencode/` and `node_modules/` were untouched. The `.agents` files were later removed again once the user confirmed the rename was intentional. Git is now clean (`.opencode/` is gitignored).
 
 > If the deletion was intentional, this decision is trivially reversible — all restored content remains in git history.
 
