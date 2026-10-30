@@ -81,6 +81,7 @@
 | Method | Path | Auth Guard | Description |
 |---|---|---|---|
 | `POST` | `/` | Verified Owner | Create draft business profile |
+| `GET` | `/owned` | Business Owner | List the current owner's business profiles |
 | `GET`, `PATCH`| `/:businessId` | Business Owner | View/update business details & weekly hours |
 | `POST` | `/:businessId/submit` | Business Owner | Submit profile for admin approval |
 | `CRUD` | `/:businessId/services[/:serviceId]` | Business Owner | Manage tenant services |

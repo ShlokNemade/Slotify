@@ -21,6 +21,7 @@
 - **Transactional booking creation, customer cancellation, owner status management, and React/Vite client booking flow.**
 - **Asynchronous outbox notification worker, Mailpit delivery, notification APIs, and client notification center.**
 - **Client account creation/sign-in surface and isolated local demo seed:** `npm run seed:demo` (remove with `npm run seed:demo -- --reset`).
+- **Owner workspace and platform-admin review UI:** `/owner` and `/admin` cover the existing business, catalog, schedule, availability, booking-management, and review APIs.
 - **Test Baseline:** `npm test` -> 123/123 passing. `npm run lint` -> clean. Client remains development-only; no production build artifacts are required.
 
 ## 2. Binding Rules for Next Phases
