@@ -13,6 +13,18 @@ function toSlug(value) {
     .slice(0, 64);
   return slug.length >= 3 ? slug : `${slug || 'business'}-app`;
 }
+function parseBreaks(value) {
+  return value.split('\n').map((line) => line.split('|').map((part) => part.trim())).filter((parts) => parts.length >= 3 && parts[0] && parts[1] && parts[2]).map(([day, start, end, reason]) => ({ day, start, end, ...(reason ? { reason } : {}) }));
+}
+function parseLeave(value) {
+  return value.split('\n').map((line) => line.split('|').map((part) => part.trim())).filter((parts) => parts.length >= 2 && parts[0] && parts[1]).map(([startDate, endDate, reason]) => ({ startDate, endDate, ...(reason ? { reason } : {}) }));
+}
+function formatBreaks(items = []) {
+  return items.map((item) => [item.day, item.start, item.end, item.reason].filter(Boolean).join(' | ')).join('\n');
+}
+function formatLeave(items = []) {
+  return items.map((item) => [item.startDate, item.endDate, item.reason].filter(Boolean).join(' | ')).join('\n');
+}
 
 function Field({ label, children }) {
   return <label className="field">{label}{children}</label>;
@@ -90,7 +102,7 @@ function HoursForm({ business, onSaved }) {
 
 function ServicesPanel({ businessId }) {
   const [services, setServices] = useState([]);
-  const [form, setForm] = useState({ name: '', description: '', durationMinutes: 60, price: 0 });
+  const [form, setForm] = useState({ name: '', description: '', durationMinutes: 60, price: 0, bufferMinutes: 0, bufferPlacement: 'after' });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const load = () => api(`/businesses/${businessId}/services`).then((data) => setServices(data.services)).catch((err) => setError(err.message));
@@ -98,8 +110,8 @@ function ServicesPanel({ businessId }) {
   async function submit(event) {
     event.preventDefault(); setError('');
     try {
-      await api(`/businesses/${businessId}/services`, { method: 'POST', body: JSON.stringify({ ...form, durationMinutes: Number(form.durationMinutes), price: Number(form.price), active: true, eligibleStaffIds: [] }) });
-      setForm({ name: '', description: '', durationMinutes: 60, price: 0 }); load();
+      await api(`/businesses/${businessId}/services`, { method: 'POST', body: JSON.stringify({ ...form, durationMinutes: Number(form.durationMinutes), price: Number(form.price), bufferMinutes: Number(form.bufferMinutes), active: true, eligibleStaffIds: [] }) });
+      setForm({ name: '', description: '', durationMinutes: 60, price: 0, bufferMinutes: 0, bufferPlacement: 'after' }); load();
     } catch (err) { setError(err.message); }
   }
   async function deactivate(service) {
@@ -116,6 +128,8 @@ function ServicesPanel({ businessId }) {
           description: service.description ?? '',
           durationMinutes: Number(service.durationMinutes),
           price: Number(service.price ?? 0),
+          bufferMinutes: Number(service.bufferMinutes ?? 0),
+          bufferPlacement: service.bufferPlacement ?? 'after',
         }),
       });
       setEditingId(null);
@@ -123,13 +137,15 @@ function ServicesPanel({ businessId }) {
     } catch (err) { setError(err.message); }
   }
   return <div className="manage-section">
-    <form className="inline-form" onSubmit={submit}><Field label="Service name"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field><Field label="Minutes"><input type="number" min="5" required value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: e.target.value })} /></Field><Field label="Price"><input type="number" min="0" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Field><button className="primary-button">Add service</button></form>
+    <form className="inline-form" onSubmit={submit}><Field label="Service name"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field><Field label="Minutes"><input type="number" min="5" required value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: e.target.value })} /></Field><Field label="Price"><input type="number" min="0" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Field><Field label="Buffer minutes"><input type="number" min="0" value={form.bufferMinutes} onChange={(e) => setForm({ ...form, bufferMinutes: e.target.value })} /></Field><Field label="Buffer placement"><select value={form.bufferPlacement} onChange={(e) => setForm({ ...form, bufferPlacement: e.target.value })}><option value="before">Before</option><option value="after">After</option><option value="between">Between</option></select></Field><button className="primary-button">Add service</button></form>
     <ErrorMessage message={error} />
     <div className="manage-list">{services.map((service) => <article className="manage-card" key={service.id}>
       {editingId === service.id ? <div className="edit-grid">
         <input aria-label="Service name" value={service.name} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, name: e.target.value } : item))} />
         <input aria-label="Duration in minutes" type="number" min="5" value={service.durationMinutes} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, durationMinutes: e.target.value } : item))} />
         <input aria-label="Price" type="number" min="0" value={service.price ?? 0} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, price: e.target.value } : item))} />
+        <input aria-label="Buffer minutes" type="number" min="0" value={service.bufferMinutes ?? 0} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, bufferMinutes: e.target.value } : item))} />
+        <select aria-label="Buffer placement" value={service.bufferPlacement ?? 'after'} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, bufferPlacement: e.target.value } : item))}><option value="before">Before</option><option value="after">After</option><option value="between">Between</option></select>
         <button className="primary-button compact" onClick={() => save(service)}>Save</button>
         <button className="secondary-button compact" onClick={() => setEditingId(null)}>Cancel</button>
       </div> : <><div><strong>{service.name}</strong><p className="muted">{service.durationMinutes} min · {service.price ?? 0}</p></div>{service.active && <span className="button-row"><button className="secondary-button" onClick={() => setEditingId(service.id)}>Edit</button><button className="secondary-button" onClick={() => deactivate(service)}>Deactivate</button></span>}</>}
@@ -160,6 +176,9 @@ function StaffPanel({ businessId }) {
           displayName: member.displayName,
           email: member.email || undefined,
           qualifications: member.qualifications ?? [],
+          shifts: member.shifts ?? [],
+          breaks: member.breaks ?? [],
+          leave: member.leave ?? [],
         }),
       });
       setEditingId(null);
@@ -174,6 +193,25 @@ function StaffPanel({ businessId }) {
         <input aria-label="Staff name" value={member.displayName} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, displayName: e.target.value } : item))} />
         <input aria-label="Staff email" type="email" value={member.email ?? ''} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, email: e.target.value } : item))} />
         <input aria-label="Qualifications" value={(member.qualifications ?? []).join(', ')} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, qualifications: e.target.value.split(',').map((value) => value.trim()).filter(Boolean) } : item))} />
+        <div className="staff-shifts">
+          <strong>Weekly shifts</strong>
+          {DAYS.map((day) => {
+            const shift = member.shifts?.find((item) => item.day === day);
+            const window = shift?.windows?.[0] ?? { open: '09:00', close: '17:00' };
+            return <div className="staff-shift-row" key={day}>
+              <label><input type="checkbox" checked={Boolean(shift)} onChange={(e) => setStaff((current) => current.map((item) => {
+                if (item.id !== member.id) return item;
+                const shifts = item.shifts?.filter((entry) => entry.day !== day) ?? [];
+                return { ...item, shifts: e.target.checked ? [...shifts, { day, windows: [window] }] : shifts };
+              }))} /> {day}</label>
+              <input aria-label={`${day} opening time`} type="time" disabled={!shift} value={window.open} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, shifts: (item.shifts ?? []).map((entry) => entry.day === day ? { ...entry, windows: [{ ...window, open: e.target.value }] } : entry) } : item))} />
+              <span>to</span>
+              <input aria-label={`${day} closing time`} type="time" disabled={!shift} value={window.close} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, shifts: (item.shifts ?? []).map((entry) => entry.day === day ? { ...entry, windows: [{ ...window, close: e.target.value }] } : entry) } : item))} />
+            </div>;
+          })}
+        </div>
+        <label className="field">Breaks <textarea rows="3" value={formatBreaks(member.breaks)} placeholder="monday | 12:00 | 13:00 | Lunch" onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, breaks: parseBreaks(e.target.value) } : item))} /></label>
+        <label className="field">Leave <textarea rows="3" value={formatLeave(member.leave)} placeholder="2026-11-01T09:00:00Z | 2026-11-02T17:00:00Z | Holiday" onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, leave: parseLeave(e.target.value) } : item))} /></label>
         <button className="primary-button compact" onClick={() => save(member)}>Save</button>
         <button className="secondary-button compact" onClick={() => setEditingId(null)}>Cancel</button>
       </div> : <><div><strong>{member.displayName}</strong><p className="muted">{member.email || 'No email'} · {member.active ? 'Active' : 'Inactive'}</p><p className="small-note">{(member.qualifications ?? []).join(', ') || 'No qualifications listed'}</p></div>{member.active && <span className="button-row"><button className="secondary-button" onClick={() => setEditingId(member.id)}>Edit</button><button className="secondary-button" onClick={() => deactivate(member)}>Deactivate</button></span>}</>}

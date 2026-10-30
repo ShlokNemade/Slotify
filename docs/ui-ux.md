@@ -31,7 +31,7 @@ Refer to `.agents/skills/ui-ux-pro-max/SKILL.md` for complete design intelligenc
 ### 2.2 Owner Portal (`/dashboard`)
 1. **Business Profile & Hours:** Edit description and weekly schedule intervals; public URL is generated from the business name.
 2. **Services Management:** Add/edit/deactivate services (duration, buffer minutes, price).
-3. **Staff Management:** Add/edit/deactivate staff and assign qualifications.
+3. **Staff Management:** Add/edit/deactivate staff, assign qualifications, configure weekly shifts, breaks, and leave.
 4. **Exceptions & Closures:** Add/edit/remove holiday closures or block intervals.
 5. **Appointments List / Calendar:** View upcoming customer bookings; buttons to mark `completed` or `no_show`.
 
