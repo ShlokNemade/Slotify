@@ -59,7 +59,7 @@ export function NotificationCenter() {
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <span aria-hidden="true">◌</span>
+        <span aria-hidden="true">Alerts</span>
         {data.unreadCount > 0 && <b>{data.unreadCount}</b>}
       </button>
       {open && (

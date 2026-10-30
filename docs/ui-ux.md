@@ -1,56 +1,47 @@
-# UI/UX Specification
+# UI/UX Specification (MVP)
 
-**Status:** proposed. Latest style choice supersedes the earlier navy/cream reference.
+**Target:** React + Vite Single-Page Application (`apps/client`) for College Mini-Project Demo.  
+**Mandatory Skill:** All UI development must consult and adhere to `.agents/skills/ui-ux-pro-max/SKILL.md`.  
+**Visual Style:** Soft UI Evolution with an accessible sky-blue/emerald palette, restrained depth, visible focus, and subtle motion.
+**Source of Truth:** [`design-system/slotify/MASTER.md`](../design-system/slotify/MASTER.md), generated and persisted with `ui-ux-pro-max`.
 
-## Visual direction
+---
 
-Modern white/neutral SaaS dashboard with restrained accents, clear hierarchy, compact data cards, and status colors used semantically rather than decoratively.
+## 1. UI/UX Pro Max Design Directives
 
-## Areas and navigation
+Refer to `.agents/skills/ui-ux-pro-max/SKILL.md` for complete design intelligence:
+- **Design System & Palette:** `#F0F9FF` background, `#0284C7` primary, `#059669` accent, and semantic status colors.
+- **Typography:** Inter/system sans with a functional, responsive hierarchy.
+- **Accessibility & Interaction:** WCAG AA contrast, visible focus rings, keyboard-accessible native controls, paste/password-manager support, and reduced-motion handling.
+- **Component States:** Always provide explicit loading skeletons, empty states, error banners, and disabled submit buttons during async execution.
 
-### Customer
+---
 
-Directory, business profile, guided booking, booking confirmation/details, upcoming/past bookings, notification center, account/security settings.
+## 2. Views & Flows
 
-### Owner
+### 2.1 Customer Flow
+1. **Public Directory (`/`):** Search input, category filter, cards showing approved businesses and pricing.
+2. **Business Profile (`/businesses/:slug`):** Business overview, opening hours, list of active services with duration and price.
+3. **Booking Modal / Flow:**
+   - Select Service -> Choose Date -> Select available slot (from `/slots` API) -> Select Staff (or 'Any Available') -> Review -> Confirm.
+   - Shows success confirmation with appointment details.
+4. **My Bookings (`/my-bookings`):** List user's upcoming and past bookings with status badges (`confirmed`, `cancelled`, `completed`, `no_show`).
+   - "Cancel Appointment" button for upcoming bookings.
 
-Persistent left sidebar:
+### 2.2 Owner Portal (`/dashboard`)
+1. **Business Profile & Hours:** Edit description and weekly schedule intervals; public URL is generated from the business name.
+2. **Services Management:** Add/edit/deactivate services (duration, buffer minutes, price).
+3. **Staff Management:** Add/edit/deactivate staff and assign qualifications.
+4. **Exceptions & Closures:** Add/edit/remove holiday closures or block intervals.
+5. **Appointments List / Calendar:** View upcoming customer bookings; buttons to mark `completed` or `no_show`.
 
-- Calendar
-- Bookings
-- Services
-- Staff
-- Customers
-- Availability
-- Analytics
-- Protection
-- Settings
+### 2.3 Platform Admin (`/admin`)
+1. **Business Approvals:** List businesses in `pending_approval`; one-click "Approve" or "Reject" (with reason note).
 
-### Platform admin
+---
 
-Separate navigation and area for overview/health, tenant review, rate-limit monitoring, queue/notification health, and administrative activity. Hiding a link is not authorization; APIs must enforce permissions.
+## 3. Interaction & State Invariants
 
-## Calendar and booking flow
-
-- Owner calendar defaults to weekly view, with day and month views.
-- Distinguish confirmed bookings, open availability, blocked periods, and conflicts.
-- Mobile uses a compact day/agenda presentation.
-- Customer flow: select business → services/order → staff per service → date/time → review → confirm.
-- Confirmation is shown only after authoritative server response.
-- On conflict, preserve still-valid choices, explain what changed, refresh availability, and require explicit reconfirmation.
-- No automatic partial booking.
-
-## Directory/profile
-
-- Filters: category, location, service, date, displayed price.
-- Optional device location with permission; nearest-first when available, otherwise relevance.
-- Public profiles show description, services/prices, staff display names, hours, and bookable slots only.
-- Slug change behavior for old URLs remains open.
-
-## Protection UX
-
-Explain blocked action, restriction category, and expiry if temporary. Do not reveal internal risk scores or precise detection logic. Provide owner contact path. Owner lifts restrictions with an audit record.
-
-## Responsive/accessibility
-
-Fully responsive desktop and mobile. Semantic controls, keyboard navigation, visible focus, sufficient contrast, accessible errors, labels, and no color-only status communication. Provide loading, empty, error, success, and stale-availability states.
+- **Advisory UI:** UI displays available slots advisory; handles 409 Conflict gracefully by asking the customer to select a refreshed slot.
+- **Accessible Forms:** Clear error messages, disabled buttons during async submissions, and keyboard navigation.
+- **Authentication Recovery:** Password reset request/completion and email verification token pages are available from the account flow.
