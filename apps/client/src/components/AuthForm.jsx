@@ -5,6 +5,7 @@ import { ErrorMessage } from './ErrorMessage.jsx';
 export function AuthForm({ onComplete, initialMode = 'signin' }) {
   const [mode, setMode] = useState(initialMode);
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ export function AuthForm({ onComplete, initialMode = 'signin' }) {
       if (mode === 'signup') {
         const registration = await api('/auth/register', {
           method: 'POST',
-          body: JSON.stringify({ email, password, fullName }),
+          body: JSON.stringify({ email, password, fullName, role }),
         });
         if (registration.devVerificationToken) {
           await api('/auth/verify-email', {
@@ -51,7 +52,15 @@ export function AuthForm({ onComplete, initialMode = 'signin' }) {
   return (
     <form className="auth-form" onSubmit={submit}>
       {mode === 'signup' && (
-        <label>Full name<input autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
+        <>
+          <label>Full name<input autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
+          <label>Account type
+            <select value={role} onChange={(event) => setRole(event.target.value)}>
+              <option value="customer">Customer — book appointments</option>
+              <option value="owner">Business owner — manage a business</option>
+            </select>
+          </label>
+        </>
       )}
       <label>Email<input autoComplete="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
       <label>Password<input autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} type="password" required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
@@ -65,6 +74,7 @@ export function AuthForm({ onComplete, initialMode = 'signin' }) {
           setMode((current) => current === 'signin' ? 'signup' : 'signin');
           setError('');
           setNotice('');
+          setRole('customer');
         }}
       >
         {mode === 'signup' ? 'Already have an account? Sign in' : 'New to Slotify? Create an account'}

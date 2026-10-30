@@ -178,7 +178,9 @@ export function OwnerDashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
 
   const loadBusinesses = () => api('/businesses/owned').then((data) => { setBusinesses(data.businesses); setBusiness((current) => current ? data.businesses.find((item) => item.id === current.id) ?? data.businesses[0] : data.businesses[0]); }).catch((err) => setError(err.message)).finally(() => setLoading(false));
-  useEffect(loadBusinesses, []);
+  useEffect(() => {
+    loadBusinesses();
+  }, []);
   useEffect(() => {
     if (!business) return;
     Promise.all([api(`/businesses/${business.id}/services`), api(`/businesses/${business.id}/staff`)])
