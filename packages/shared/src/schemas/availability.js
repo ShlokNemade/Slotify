@@ -135,3 +135,27 @@ export const exceptionListQuerySchema = z.object({
   toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   staffId: objectIdSchema.optional(),
 });
+
+/**
+ * Shared core for slot availability queries.
+ */
+const slotsQueryBase = z.object({
+  serviceId: objectIdSchema,
+  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+/**
+ * Owner slot preview query: may also scope to one staff member for an
+ * internal per-staff breakdown.
+ */
+export const ownerSlotsQuerySchema = slotsQueryBase.extend({
+  staffId: objectIdSchema.optional(),
+});
+
+/**
+ * Public bookable-slot query: never accepts a staff filter scoped response
+ * beyond merged "any available" slots; staff schedule templates stay private.
+ */
+export const publicSlotsQuerySchema = slotsQueryBase;
+
