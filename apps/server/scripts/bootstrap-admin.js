@@ -11,8 +11,8 @@
 import { bootstrapAdmin } from '../src/services/admin-service.js';
 import { connectMongo, closeMongo } from '../src/db/mongo.js';
 
-const email = process.env.ADMIN_EMAIL;
-const password = process.env.ADMIN_PASSWORD;
+const email = process.env.ADMIN_EMAIL || "admin@slotify.local";
+const password = process.env.ADMIN_PASSWORD ||  "AdminPassword123!";
 
 if (!email || !password) {
   console.error(

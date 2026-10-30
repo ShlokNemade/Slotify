@@ -1,37 +1,26 @@
-# Security and Authentication
+# Security and Authentication Specification
 
-**Status:** proposed; perform threat-model review.
+Compact security policies enforced across all application layers.
 
-## Authentication
+## 1. Authentication & Session Management
 
-- Server-managed sessions with HttpOnly cookies and revocation.
-- Use Secure cookies over HTTPS and a carefully chosen SameSite policy.
-- HttpOnly does not prevent CSRF. Add CSRF protection and appropriate Origin checks.
-- Rotate session IDs on login/privilege changes; invalidate sessions after sensitive account changes.
-- Modern password hashing; cryptographically secure, single-use verification/reset tokens; 24-hour verification expiry.
-- Password-reset responses must not reveal whether an account exists.
-- Rate-limit login, registration, verification, and reset endpoints.
+- **Sessions:** 32-byte cryptographically random session tokens, stored as SHA-256 hashes in MongoDB with TTL auto-expiry.
+- **Cookies:** Transported via `HttpOnly`, `SameSite=Lax` cookies (or `Authorization: Bearer` header).
+- **Password Hashing:** `bcryptjs` with 12 salt rounds.
+- **Verification Tokens:** Cryptographically random, single-use, 24-hour expiration.
+- **Password Reset:** Non-enumerating responses (identical message whether email exists or not).
+- **Session Revocation:** All user sessions revoked upon password reset or role mutation.
 
-## Authorization
+## 2. Authorization & Tenant Isolation
 
-- Backend authorization on every protected request.
-- Owners access only their business data; customers access only their own bookings.
-- Platform-admin permissions are bootstrapped securely, never via public registration or client-controlled fields.
-- Public endpoints return allowlisted published data.
-- Staff have no login in the proposed scope.
+- **Role Verification:** Middleware guards verify `customer`, `owner`, or `admin` on protected routes.
+- **Tenant Guard (`requireBusinessOwnership`):** Enforces that the authenticated owner owns the target `businessId`. Cross-tenant requests return 403 Forbidden.
+- **Admin Bypass:** Platform admin CLI-bootstrapped identity can review any business.
+- **Public Data Masking:** Directory endpoints expose allowlisted public data only (no private appointments, customer PII, or internal staff shifts).
 
-## Abuse/privacy
+## 3. Input Validation & Data Protection
 
-- Edge request limits, account/business policy checks, and authoritative booking validation are separate layers.
-- Shared IP alone is not proof of abuse.
-- Do not expose risk scores, exact detection signals, private appointments, customer identity, or internal staff schedules.
-- Minimize IP/device data, document retention, and restrict access to abuse/audit records.
-- Challenge/CAPTCHA should have a provider adapter and local/test mode.
-
-## Application security
-
-Validate inputs, encode outputs, use strict schemas and parameterized database operations, configure CORS/request limits, and test CSRF, XSS, brute force, and object-level authorization. Keep secrets out of source control and redact passwords, cookies, tokens, and sensitive payloads from logs.
-
-## Audit
-
-Record owner cancellations/adjustments and reasons, reschedule/proposal decisions, restriction creation/expiry/lift, protection setting changes, tenant approval, admin actions, and dead-letter replay. Preserve history rather than deleting lifted restrictions.
+- **Schema Validation:** Strict Zod parsing on `req.body`, `req.query`, and `req.params`. Extra fields stripped.
+- **No Secrets in Repo:** All credentials pulled from environment variables (`.env.example` template).
+- **Sensitive Log Redaction:** Passwords, session tokens, and reset tokens never written to application logs.
+- **Error Sanitization:** Centralized error envelope returns consistent sanitized errors with correlation IDs.

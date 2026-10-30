@@ -1,32 +1,13 @@
-# Open Questions and Validation Checklist
+# Technical Decisions & Status Tracker
 
-Avoid restarting broad preference rounds. Resolve only material correctness/security/feasibility gaps; document sensible defaults for minor details.
+Compact tracking of resolved decisions, MVP conventions, and deferred topics.
 
-## High priority
-
-1. **Booking concurrency:** choose and prove how overlapping confirmed assignments are prevented. MongoDB transactions alone are not assumed sufficient for arbitrary interval overlap. Test concurrent writes.
-2. **Stronger edge coordination:** evaluate Durable Objects or another coordinator for scopes where KV is insufficient; verify quotas and local simulation.
-3. **Rate-limit overshoot:** define lease size, active Worker assumptions, expiry, partition behavior, and in-flight requests; derive or measure bounds.
-4. **MongoDB local topology:** specify replica-set/container setup required for transactions.
-5. **RabbitMQ topology:** define durable queues, publisher confirms, retries/backoff, dead-letter retention, poison messages, replay authorization.
-6. **Owner proposals:** recommended default is one active proposal per booking; confirm if multiple are needed.
-7. **Automatic completion:** manual completion is the safer default; optional automation remains undecided.
-8. **Service snapshot:** confirm snapshotting name/duration/displayed price at booking time.
-9. **Slug history:** define old-slug redirect retention and reuse; recommended default is redirect and do not immediately reuse.
-10. **Notification preferences:** define optional categories and whether channel preferences are independent.
-11. **Identity roles:** clarify whether one email identity may also own a business while being a customer; customer identity remains global across businesses.
-12. **Business approval:** define rejection reasons, resubmission, and re-review.
-13. **CAPTCHA provider:** choose only if needed; retain adapter and local test mode.
-
-## Values to measure or confirm
-
-- Numeric rate-limit defaults and platform maxima.
-- Booking horizon/minimum-notice defaults.
-- Benchmark thresholds after baseline run.
-- Notification retry/backoff schedule and dead-letter retention.
-- Audit and telemetry retention.
-- Free-tier quotas/provider limits at implementation time.
-
-## Fixed constraints to preserve
-
-No payments; global customer accounts; no staff login; booking confirmation independent of notifications; atomic multi-service booking; no silent changes to confirmed bookings; business-specific restrictions do not automatically propagate; shared IP alone is not proof of abuse; rate limiting is not booking concurrency control; local demo needs no paid service.
+| Area | Topic | Status / Decision | Rationale |
+|---|---|---|---|
+| **Booking Concurrency** | Double-booking prevention | **Resolved (MVP):** MongoDB transaction (`rs0`) + active booking overlap revalidation prior to insert. | Native ACID guarantee in single-node replica set; tested under concurrent load. |
+| **Service Snapshots** | Pricing & duration drift | **Resolved (MVP):** Snapshot `name`, `price`, `durationMinutes`, `bufferMinutes` on booking record. | Historical booking integrity preserved regardless of subsequent service changes. |
+| **Schedule Exceptions** | Existing booking conflict | **Resolved (MVP):** Advisory warnings only; blocks never cancel or alter confirmed bookings. | Enforces strict non-destructive invariant. |
+| **Edge Rate-Limiting** | Distributed token bucket | **Active Requirement (MVP Phase 06):** Edge worker/middleware, in-memory KV store, sliding-window token bucket engine with global sync batching. | Required core capability for college submission and faculty evaluation. |
+| **Multi-Service Chaining** | Sequential DAG scheduling | **Deferred (Phase X):** Single-service bookings prioritized for College MVP. | Minimizes combinatorial scheduling complexity for evaluation timeline. |
+| **Owner Proposals** | 24h slot renegotiation | **Deferred (Phase X):** Direct owner cancel/mark no-show supported; proposal negotiation deferred. | Simplifies booking state machine. |
+| **Slug Reuse / Redirects** | Business slug modification | **Resolved (MVP):** Unique active slug enforced. Historical redirects deferred. | Sufficient for MVP requirements. |

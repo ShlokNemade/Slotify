@@ -61,12 +61,13 @@ export function selectEligibleStaff(service, staffList) {
 
 /**
  * Timespan the service occupies (buffered) when starting at `startTime`.
- * @param {Date} startTime
+ * Exported for the booking write path so both paths share the exact same
+ * span rules (before/after placement included).
+ * @param {Date} startTime customer-visible start
  * @param {object} service
- * @returns {{ start: Date, end: Date }}
- * @internal
+ * @returns {{ start: Date, end: Date }} buffered blocked span
  */
-function bufferedSpan(startTime, service) {
+export function serviceBusySpan(startTime, service) {
   const start = startTime.getTime();
   const durationMs = (service.durationMinutes ?? 0) * 60_000;
   const bufferMs = (service.bufferMinutes ?? 0) * 60_000;
@@ -74,6 +75,16 @@ function bufferedSpan(startTime, service) {
     return { start: new Date(start - bufferMs), end: new Date(start + durationMs) };
   }
   return { start: startTime, end: new Date(start + durationMs + bufferMs) };
+}
+
+/**
+ * @internal
+ * @param {Date} startTime
+ * @param {object} service
+ * @returns {{ start: Date, end: Date }}
+ */
+function bufferedSpan(startTime, service) {
+  return serviceBusySpan(startTime, service);
 }
 
 /**

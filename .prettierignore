@@ -3,4 +3,5 @@ dist
 build
 coverage
 .opencode
+.agents
 .wrangler

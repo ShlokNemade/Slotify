@@ -1,51 +1,97 @@
 # System Architecture
 
-**Status:** proposed architecture. Validate provider semantics and concurrency assumptions before implementation.
+**Target:** College Mini-Project MVP.  
+**Stack:** React + Vite (Frontend), Edge Worker / Middleware (Rate Limiting), Node.js + Express (API), MongoDB `rs0` (Database), Mailpit (Local Email Sandbox).
 
-## Components
+---
 
-- React + Vite + JavaScript customer/owner UI and separate admin area.
-- Cloudflare Worker edge layer for route classification and rate limiting.
-- Cloudflare KV for suitable eventually consistent state/configuration, not atomic global counters.
-- Stronger scoped coordination where required; exact primitive remains open.
-- Node.js + Express + JavaScript authoritative API.
-- MongoDB for business data, booking state, audit, notifications, and outbox.
-- RabbitMQ and background workers for asynchronous notification delivery.
-- Mailpit/local email sandbox; configurable provider adapter for optional deployment.
+## 1. System Topology
 
-## Booking write path
+```
++-------------------------------------------------------------+
+|                      React + Vite SPA                       |
+|          (Customer Directory/Booking, Owner/Admin)          |
++-------------------------------------------------------------+
+                               |  HTTP / JSON (Cookies)
+                               v
++-------------------------------------------------------------+
+|       Edge-Based Distributed Rate Limiting Middleware       |
+|  - Edge Worker / Cloud Function layer                       |
+|  - In-Memory KV Store                                       |
+|  - Sliding-window token bucket engine                       |
+|  - Periodic global sync batching                            |
++-------------------------------------------------------------+
+                               |  (Passes allowlisted / unblocked traffic)
+                               v
++-------------------------------------------------------------+
+|                  Express API (@slotify/server)              |
+|  - Auth & Sessions (bcrypt, HttpOnly cookie)                |
+|  - Tenant Guard (businessId authorization)                  |
+|  - Slot Engine & Schedule Expansion                         |
+|  - Booking Write Service & Transaction Controller           |
++-------------------------------------------------------------+
+              |                                  |
+              v                                  v
++-----------------------------+    +--------------------------+
+|       MongoDB (rs0)         |    |     Background Worker    |
+| - Users, Sessions           |    | - Polls 'outbox' table   |
+| - Businesses, Services      |--->| - Dispatches to Mailpit  |
+| - Staff, Exceptions         |    | - Writes 'notifications' |
+| - Bookings, Outbox, Audit   |    +--------------------------+
++-----------------------------+                  |
+                                                 v
+                                   +--------------------------+
+                                   |      Mailpit Sandbox     |
+                                   |    (Local SMTP / UI)     |
+                                   +--------------------------+
+```
 
-1. Client submits request with idempotency key.
-2. API authenticates, checks verification, tenant scope, booking policy, and abuse restrictions.
-3. API recalculates service order, durations, buffers, staff qualifications, schedules, and availability.
-4. A concurrency-safe transactional operation secures every segment and staff assignment, writes booking/audit data, and writes an outbox event.
-5. If any segment fails, commit no partial booking and return refreshed options.
-6. Return confirmed status after successful authoritative commit.
-7. Publisher sends outbox event to RabbitMQ asynchronously.
-8. Workers send email and create in-app notifications idempotently. Delivery failure never undoes booking.
+---
 
-MongoDB transactions alone are not assumed to prevent arbitrary interval overlap. The exact conflict-prevention mechanism must be selected and proven by concurrent tests.
+## 2. Core Flows
 
-## Availability read path
+### 2.1 Request & Rate Limiting Flow
+1. Incoming client request is intercepted by the Edge Middleware.
+2. Evaluates the client identity / IP using an in-memory KV store.
+3. Checks token bucket capacity (burst protection) and sliding-window quota.
+4. If exceeded: immediately responds with HTTP `429 Too Many Requests` + rate-limit headers.
+5. If allowed: forwards request to the Express API with `X-RateLimit-*` headers attached.
+6. Local counts are flushed asynchronously to the global sync batch coordinator.
 
-Expand recurring schedules and exceptions in the business time zone; filter candidates by interval, service duration/buffers, staff eligibility, shifts, breaks, leave, business closures, notice/horizon, and existing bookings. Return bookable slots only. Results are advisory until the write path revalidates.
+### 2.2 Availability Read Path
+1. Client requests slots: `GET /api/v1/directory/businesses/:slug/slots?serviceId=...&date=...`.
+2. Controller fetches business hours, active staff shifts, service buffers/duration, exceptions, and existing bookings.
+3. `slot-engine.js` runs pure UTC interval math:
+   - Expands recurring shift & business intervals in business IANA timezone (DST-handled).
+   - Subtracts exceptions and confirmed booking intervals.
+   - Fits `[start, start + duration + buffer)` onto the grid.
+4. Returns available start times. Reads are strictly advisory.
 
-## Background jobs
+### 2.3 Booking Write Path (Authoritative)
+1. Customer submits `POST /api/v1/bookings` with `businessId`, `serviceId`, `staffId` (or `'any'`), `startTime`, and `idempotencyKey`.
+2. Auth middleware verifies customer identity and verified email status.
+3. Booking service fetches current service, business, and staff records.
+4. If `staffId === 'any'`, resolves to an eligible staff member free for the requested window.
+5. In an atomic MongoDB multi-document transaction (`rs0`):
+   - Re-queries active bookings for the target staff to guarantee zero overlap.
+   - Snapshots service `name`, `duration`, `price`.
+   - Inserts new booking with status `confirmed`.
+   - Inserts outbox event `booking.confirmed`.
+6. Transaction commits atomically. Returns 201 with confirmed booking.
+7. Background worker polls outbox and sends confirmation email asynchronously.
 
-- Outbox publisher and reconciliation
-- Notification workers with retry/backoff/dead-letter handling
-- Reminder scheduling at 24h and 2h, recalculated after changes
-- Restriction expiry
-- Five-second initial rate-limit usage synchronization
-- Monitoring for stuck outbox entries, queue failures, missing/duplicate batches
+---
 
-## Boundaries and failure behavior
+## 3. Failure & Concurrency Handling
 
-- Every tenant-owned record and owner operation is business-scoped.
-- Platform-admin authorization is separate.
-- Public APIs return allowlisted published data.
-- Database commit failure means no confirmed booking.
-- Queue/email outage does not undo a booking.
-- Coordination failure uses bounded local rate limits; sensitive operations may fail closed if their required guarantees cannot be maintained.
-- Sync batches require stable IDs, deduplication, retry, and reconciliation.
-- Rate limiting never substitutes for authoritative booking validation.
+- **Double Booking Race Condition:** MongoDB transaction re-checks active booking overlap prior to insert; concurrent duplicate requests fail with 409 Conflict.
+- **Worker/Email Failure:** Failure to send email never rolls back confirmed bookings. Outbox processor retries with backoff.
+- **Cross-Tenant Isolation:** `requireBusinessOwnership` middleware strictly rejects cross-tenant requests with 403 Forbidden.
+
+---
+
+## 4. Post-Submission Components (Phase X)
+
+- Multi-service atomic DAG scheduling chains.
+- 24-hour owner booking proposal state machine.
+- Chaos partition injection and dead-letter replay management.

@@ -40,8 +40,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Local agent skills (intentionally untracked; migrated from .agents/)
-.opencode/
+# Local agent skills 
+.agents/
 
 # Temporary / Scratch
 scratch/

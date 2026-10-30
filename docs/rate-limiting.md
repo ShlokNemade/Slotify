@@ -1,59 +1,52 @@
-# Distributed Rate-Limiting Design
+# Distributed Rate-Limiting Design (MVP Core)
 
-**Status:** assignment-critical proposal; correctness claims require tests.
+**Target:** College Mini-Project MVP — Faculty Evaluation Requirement.  
+**Architecture:** Edge Worker / Middleware with In-Memory KV Store and Sliding-Window Token Bucket Engine.
 
-## Goal
+---
 
-Implement edge middleware using token bucket plus sliding-window checks for sensitive actions, bounded token leases, periodic global sync (five seconds initially), separate tenant/customer and platform/IP namespaces, a custom abstraction over provider primitives, fault injection, and benchmarks.
+## 1. Objective & Faculty Demonstration
 
-## Request path
+Provide an edge-layer rate-limiting middleware that protects the API from abuse and demonstrates distributed rate limiting via:
+1. **Edge Workers / Middleware:** Inspects incoming requests at the edge or ingress proxy.
+2. **In-Memory KV Store:** Fast local state tracking (e.g. Miniflare / Cloudflare KV / In-Memory KV cache).
+3. **Sliding-Window Token Bucket Engine:** Handles short-term bursts while enforcing sliding-window rate limits.
+4. **Global Sync Batching:** Periodically synchronizes local batch usage counters to global state to maintain multi-instance coordination.
+5. **Visible Headers & Status:** Returns `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `429 Too Many Requests`.
 
-1. Classify route and risk.
-2. Derive scoped key from validated identity/tenant context plus separate network/platform keys.
-3. Apply local token-bucket burst protection.
-4. Apply sliding-window checks to sensitive operations.
-5. Consume only bounded local leases.
-6. Record usage and publish batches.
-7. Reconcile batches using stable IDs/sequences and idempotent ingestion.
-8. Always retain authoritative backend booking validation.
+---
 
-## Token bucket
+## 2. Algorithm & Engine Design
 
-For capacity `B`, refill rate `r`, elapsed seconds `dt`, and previous tokens `T`:
-`T_new = min(B, T + r * dt)`.
-Define request costs, clock-skew assumptions, and whether a route requires more than one token.
+### 2.1 Sliding-Window Token Bucket
+- **Token Bucket (Burst Guard):**
+  - Configured with Capacity $B$ and refill rate $r$ tokens/second.
+  - Calculated: $T_{\text{new}} = \min(B, T_{\text{prev}} + r \times dt)$.
+  - Immediate burst protection per IP or tenant key.
+- **Sliding-Window Counter (Quota Guard):**
+  - Divides time into rolling windows (e.g., 60 seconds).
+  - Approximates current window rate:
+    $$\text{Count} = \text{CurrentWindowCount} + \text{PreviousWindowCount} \times \left(1 - \frac{t_{\text{elapsed}}}{\text{WindowSize}}\right)$$
+  - Prevents boundary-burst attacks on sensitive endpoints (`/auth/login`, `/auth/register`, `/bookings`).
 
-## Sliding window
+### 2.2 Global Sync Batching
+- **Local Accumulation:** Worker instances record increments locally in an in-memory KV store to minimize latency.
+- **Batch Dispatch:** At fixed intervals (e.g., every 5 seconds), local counts are flushed to the shared coordinator/KV store.
+- **Lease Allocation:** Workers pull replenishment allowances during sync cycles.
 
-Define exact or approximate semantics, window boundaries, storage cost, timestamp assumptions, deduplication, and incorporation of batched usage. Token bucket handles bursts; it does not alone enforce a sliding-window quota.
+---
 
-## Leases and synchronization
+## 3. Protected Route Registry
 
-- Five seconds is an initial tuning value, not a proven optimum.
-- Each Worker can spend only its finite local lease.
-- Lease expiry/refresh must be explicit.
-- Batches need stable IDs, sequence/version, duplicate handling, retry-safe acknowledgement, and gap detection/reconciliation.
-- Global usage will lag during the sync interval.
-- Establish a bound for overshoot using active Worker count, lease size, partition behavior, expiry, in-flight requests, and batch loss. If unacceptable for a sensitive operation, use stronger coordination or fail closed.
+| Category | Target Endpoints | Quota (Example) | Key Scope |
+|---|---|---|---|
+| **Auth Sensitive** | `/api/v1/auth/login`, `/register`, `/reset-password` | 5 req / 1 min | `ip:route` |
+| **Booking Mutations** | `POST /api/v1/bookings`, `POST /api/v1/bookings/:id/cancel` | 10 req / 1 min | `user:businessId` |
+| **Public Directory** | `GET /api/v1/directory/*` | 60 req / 1 min | `ip:directory` |
 
-## KV limitation
+---
 
-Cloudflare KV is eventually consistent and not a general atomic read-modify-write store. `read → increment → write` can lose concurrent updates and cannot guarantee a strict global quota. Use KV only where its semantics suffice; evaluate a scoped coordinator such as Durable Objects or an authoritative atomic operation for stronger guarantees. Verify free-tier constraints.
+## 4. Key Boundaries
 
-## Failure strategy
-
-- Worker crash: local memory may be lost; restart conservatively and reconcile.
-- Partition/coordinator outage: do not obtain unbounded new leases; enforce bounded local limits; sensitive operations may fail closed.
-- Stale KV: never treat as globally current.
-- Duplicate batch: deduplicate by stable ID/sequence.
-- Lost batch/ack: retry idempotently and reconcile gaps.
-- Clock skew: document bounds and test boundary behavior.
-- Database outage: do not confirm booking.
-
-## Abstraction
-
-Keep policy separate from provider using small interfaces: policy/scope, lease provider, usage recorder, batch publisher/reconciler, coordination provider, and injectable clock. Avoid overengineering.
-
-## Benchmark
-
-Compare with a simple baseline. Measure throughput, p50/p95/p99 latency, blocked/accepted counts, coordination delay, batch lag, overshoot under normal/failure conditions, recovery time, and resource use. Include steady/burst load, many tenants, hot keys, Worker restart, partition, stale reads, batch loss/duplication, and recovery. Do not invent results before running tests.
+1. **Authoritative Backend:** Rate limiting protects system resources and prevents spam; it is **not** a replacement for database transactions and authoritative slot exclusivity checks.
+2. **Graceful Fallback:** If global sync is delayed, workers enforce bounded local limits without crashing the request pipeline.
