@@ -41,4 +41,10 @@ export default [
       'no-console': 'off',
     },
   },
+  {
+    files: ['**/*.jsx'],
+    rules: {
+      'no-unused-vars': 'off',
+    },
+  },
 ];
