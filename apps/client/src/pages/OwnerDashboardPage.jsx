@@ -91,9 +91,10 @@ function HoursForm({ business, onSaved }) {
 function ServicesPanel({ businessId }) {
   const [services, setServices] = useState([]);
   const [form, setForm] = useState({ name: '', description: '', durationMinutes: 60, price: 0 });
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const load = () => api(`/businesses/${businessId}/services`).then((data) => setServices(data.services)).catch((err) => setError(err.message));
-  useEffect(load, [businessId]);
+  useEffect(() => { load(); }, [businessId]);
   async function submit(event) {
     event.preventDefault(); setError('');
     try {
@@ -105,19 +106,44 @@ function ServicesPanel({ businessId }) {
     if (!window.confirm(`Deactivate ${service.name}?`)) return;
     try { await api(`/businesses/${businessId}/services/${service.id}`, { method: 'DELETE' }); load(); } catch (err) { setError(err.message); }
   }
+  async function save(service) {
+    setError('');
+    try {
+      await api(`/businesses/${businessId}/services/${service.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: service.name,
+          description: service.description ?? '',
+          durationMinutes: Number(service.durationMinutes),
+          price: Number(service.price ?? 0),
+        }),
+      });
+      setEditingId(null);
+      load();
+    } catch (err) { setError(err.message); }
+  }
   return <div className="manage-section">
     <form className="inline-form" onSubmit={submit}><Field label="Service name"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field><Field label="Minutes"><input type="number" min="5" required value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: e.target.value })} /></Field><Field label="Price"><input type="number" min="0" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Field><button className="primary-button">Add service</button></form>
     <ErrorMessage message={error} />
-    <div className="manage-list">{services.map((service) => <article className="manage-card" key={service.id}><div><strong>{service.name}</strong><p className="muted">{service.durationMinutes} min · {service.price ?? 0}</p></div>{service.active && <button className="secondary-button" onClick={() => deactivate(service)}>Deactivate</button>}</article>)}</div>
+    <div className="manage-list">{services.map((service) => <article className="manage-card" key={service.id}>
+      {editingId === service.id ? <div className="edit-grid">
+        <input aria-label="Service name" value={service.name} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, name: e.target.value } : item))} />
+        <input aria-label="Duration in minutes" type="number" min="5" value={service.durationMinutes} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, durationMinutes: e.target.value } : item))} />
+        <input aria-label="Price" type="number" min="0" value={service.price ?? 0} onChange={(e) => setServices((current) => current.map((item) => item.id === service.id ? { ...item, price: e.target.value } : item))} />
+        <button className="primary-button compact" onClick={() => save(service)}>Save</button>
+        <button className="secondary-button compact" onClick={() => setEditingId(null)}>Cancel</button>
+      </div> : <><div><strong>{service.name}</strong><p className="muted">{service.durationMinutes} min · {service.price ?? 0}</p></div>{service.active && <span className="button-row"><button className="secondary-button" onClick={() => setEditingId(service.id)}>Edit</button><button className="secondary-button" onClick={() => deactivate(service)}>Deactivate</button></span>}</>}
+    </article>)}</div>
   </div>;
 }
 
 function StaffPanel({ businessId }) {
   const [staff, setStaff] = useState([]);
   const [form, setForm] = useState({ displayName: '', email: '' });
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const load = () => api(`/businesses/${businessId}/staff`).then((data) => setStaff(data.staff)).catch((err) => setError(err.message));
-  useEffect(load, [businessId]);
+  useEffect(() => { load(); }, [businessId]);
   async function submit(event) {
     event.preventDefault(); setError('');
     try { await api(`/businesses/${businessId}/staff`, { method: 'POST', body: JSON.stringify({ ...form, active: true, qualifications: [], shifts: [], breaks: [], leave: [] }) }); setForm({ displayName: '', email: '' }); load(); } catch (err) { setError(err.message); }
@@ -125,19 +151,43 @@ function StaffPanel({ businessId }) {
   async function deactivate(member) {
     try { await api(`/businesses/${businessId}/staff/${member.id}`, { method: 'DELETE' }); load(); } catch (err) { setError(err.message); }
   }
+  async function save(member) {
+    setError('');
+    try {
+      await api(`/businesses/${businessId}/staff/${member.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          displayName: member.displayName,
+          email: member.email || undefined,
+          qualifications: member.qualifications ?? [],
+        }),
+      });
+      setEditingId(null);
+      load();
+    } catch (err) { setError(err.message); }
+  }
   return <div className="manage-section">
     <form className="inline-form" onSubmit={submit}><Field label="Staff name"><input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} /></Field><Field label="Email"><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field><button className="primary-button">Add staff</button></form>
     <ErrorMessage message={error} />
-    <div className="manage-list">{staff.map((member) => <article className="manage-card" key={member.id}><div><strong>{member.displayName}</strong><p className="muted">{member.email || 'No email'} · {member.active ? 'Active' : 'Inactive'}</p></div>{member.active && <button className="secondary-button" onClick={() => deactivate(member)}>Deactivate</button>}</article>)}</div>
+    <div className="manage-list">{staff.map((member) => <article className="manage-card" key={member.id}>
+      {editingId === member.id ? <div className="edit-grid">
+        <input aria-label="Staff name" value={member.displayName} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, displayName: e.target.value } : item))} />
+        <input aria-label="Staff email" type="email" value={member.email ?? ''} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, email: e.target.value } : item))} />
+        <input aria-label="Qualifications" value={(member.qualifications ?? []).join(', ')} onChange={(e) => setStaff((current) => current.map((item) => item.id === member.id ? { ...item, qualifications: e.target.value.split(',').map((value) => value.trim()).filter(Boolean) } : item))} />
+        <button className="primary-button compact" onClick={() => save(member)}>Save</button>
+        <button className="secondary-button compact" onClick={() => setEditingId(null)}>Cancel</button>
+      </div> : <><div><strong>{member.displayName}</strong><p className="muted">{member.email || 'No email'} · {member.active ? 'Active' : 'Inactive'}</p><p className="small-note">{(member.qualifications ?? []).join(', ') || 'No qualifications listed'}</p></div>{member.active && <span className="button-row"><button className="secondary-button" onClick={() => setEditingId(member.id)}>Edit</button><button className="secondary-button" onClick={() => deactivate(member)}>Deactivate</button></span>}</>}
+    </article>)}</div>
   </div>;
 }
 
 function ExceptionsPanel({ business, services, staff }) {
   const [exceptions, setExceptions] = useState([]);
   const [form, setForm] = useState({ date: '', reason: '', isOpen: false });
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const load = () => api(`/businesses/${business.id}/exceptions`).then((data) => setExceptions(data.exceptions)).catch((err) => setError(err.message));
-  useEffect(load, [business.id]);
+  useEffect(() => { load(); }, [business.id]);
   async function submit(event) {
     event.preventDefault(); setError('');
     try { await api(`/businesses/${business.id}/exceptions`, { method: 'POST', body: JSON.stringify(form) }); setForm({ date: '', reason: '', isOpen: false }); load(); } catch (err) { setError(err.message); }
@@ -145,10 +195,27 @@ function ExceptionsPanel({ business, services, staff }) {
   async function remove(exception) {
     try { await api(`/businesses/${business.id}/exceptions/${exception.id}`, { method: 'DELETE' }); load(); } catch (err) { setError(err.message); }
   }
+  async function save(exception) {
+    setError('');
+    try {
+      await api(`/businesses/${business.id}/exceptions/${exception.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason: exception.reason, isOpen: exception.isOpen, windows: exception.windows }),
+      });
+      setEditingId(null);
+      load();
+    } catch (err) { setError(err.message); }
+  }
   return <div className="manage-section">
     <form className="inline-form" onSubmit={submit}><Field label="Date"><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field><Field label="Reason"><input required value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></Field><label className="checkbox-field"><input type="checkbox" checked={form.isOpen} onChange={(e) => setForm({ ...form, isOpen: e.target.checked })} /> Override open</label><button className="primary-button">Add exception</button></form>
     <ErrorMessage message={error} />
-    <div className="manage-list">{exceptions.map((exception) => <article className="manage-card" key={exception.id}><div><strong>{exception.date || formatDate(exception.startDateTime, business.timeZone)}</strong><p className="muted">{exception.reason}</p></div><button className="secondary-button" onClick={() => remove(exception)}>Remove</button></article>)}</div>
+    <div className="manage-list">{exceptions.map((exception) => <article className="manage-card" key={exception.id}>
+      {editingId === exception.id ? <div className="edit-grid">
+        <input aria-label="Exception reason" value={exception.reason} onChange={(e) => setExceptions((current) => current.map((item) => item.id === exception.id ? { ...item, reason: e.target.value } : item))} />
+        <button className="primary-button compact" onClick={() => save(exception)}>Save</button>
+        <button className="secondary-button compact" onClick={() => setEditingId(null)}>Cancel</button>
+      </div> : <><div><strong>{exception.date || formatDate(exception.startDateTime, business.timeZone)}</strong><p className="muted">{exception.reason}</p></div><span className="button-row"><button className="secondary-button" onClick={() => setEditingId(exception.id)}>Edit</button><button className="secondary-button" onClick={() => remove(exception)}>Remove</button></span></>}
+    </article>)}</div>
     <p className="muted small-note">Exceptions never cancel existing bookings; conflicts are returned as warnings by the API.</p>
     <span className="sr-only">{services.length + staff.length}</span>
   </div>;
@@ -176,7 +243,7 @@ function BookingsPanel({ business }) {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState('');
   const load = () => api(`/businesses/${business.id}/bookings`).then((data) => setBookings(data.bookings)).catch((err) => setError(err.message));
-  useEffect(load, [business.id]);
+  useEffect(() => { load(); }, [business.id]);
   async function update(booking, status) {
     try { await api(`/businesses/${business.id}/bookings/${booking.id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); } catch (err) { setError(err.message); }
   }
