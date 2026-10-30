@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db/mongo.js';
 import { config } from '../config/index.js';
-import { OutboxEventType, OutboxStatus } from '@slotify/shared';
+import { BookingStatus, OutboxEventType, OutboxStatus } from '@slotify/shared';
 
 const MAX_ATTEMPTS = 3;
 
@@ -28,15 +28,36 @@ function messageFor(event, _user) {
       subject: 'Verify your Slotify account',
     };
   }
-  return {
-    title: 'Slotify update',
-    message: 'There is a new update on your Slotify account.',
-    subject: 'New Slotify update',
-  };
+  if (event.eventType === OutboxEventType.PASSWORD_RESET_REQUESTED) {
+    return {
+      title: 'Password reset requested',
+      message: 'A password reset was requested for your Slotify account.',
+      subject: 'Reset your Slotify password',
+    };
+  }
+  throw new Error(`Unsupported notification event type: ${event.eventType}`);
 }
 
 function recipientFor(event) {
   return event.payload?.userId ?? event.payload?.customerId ?? event.payload?.ownerId;
+}
+
+async function bookingEventIsCurrent(event) {
+  if (
+    event.eventType !== OutboxEventType.BOOKING_CONFIRMED &&
+    event.eventType !== OutboxEventType.BOOKING_CANCELLED
+  ) {
+    return true;
+  }
+  if (!event.payload?.bookingId || !ObjectId.isValid(event.payload.bookingId)) return false;
+  const booking = await getDb().collection('bookings').findOne({
+    _id: new ObjectId(event.payload.bookingId),
+  });
+  const expectedStatus =
+    event.eventType === OutboxEventType.BOOKING_CONFIRMED
+      ? BookingStatus.CONFIRMED
+      : BookingStatus.CANCELLED;
+  return booking?.status === expectedStatus;
 }
 
 async function claimNextEvent() {
@@ -56,9 +77,18 @@ async function claimNextEvent() {
 
 async function processEvent(event, transporter) {
   const db = getDb();
+  if (!(await bookingEventIsCurrent(event))) {
+    await db.collection('outbox').updateOne(
+      { _id: event._id, status: 'processing' },
+      { $set: { status: OutboxStatus.PUBLISHED, publishedAt: new Date() }, $unset: { processingStartedAt: '' } }
+    );
+    return;
+  }
   const recipientId = recipientFor(event);
   const recipient = recipientId
-    ? await db.collection('users').findOne({ _id: new ObjectId(recipientId) })
+    ? ObjectId.isValid(recipientId)
+      ? await db.collection('users').findOne({ _id: new ObjectId(recipientId) })
+      : null
     : null;
   const content = messageFor(event, recipient);
 
@@ -73,17 +103,28 @@ async function processEvent(event, transporter) {
           title: content.title,
           message: content.message,
           readAt: null,
+          emailSentAt: null,
           createdAt: event.createdAt,
         },
       },
       { upsert: true }
     );
-    await transporter.sendMail({
-      from: config.SMTP_FROM,
-      to: recipient.email,
-      subject: content.subject,
-      text: content.message,
+    const notification = await db.collection('notifications').findOne({
+      userId: recipient._id,
+      sourceEventId: event._id,
     });
+    if (!notification.emailSentAt) {
+      await transporter.sendMail({
+        from: config.SMTP_FROM,
+        to: recipient.email,
+        subject: content.subject,
+        text: content.message,
+      });
+      await db.collection('notifications').updateOne(
+        { _id: notification._id, emailSentAt: null },
+        { $set: { emailSentAt: new Date() } }
+      );
+    }
   }
 
   await db.collection('outbox').updateOne(

@@ -15,6 +15,8 @@
   - creates idempotent in-app notification records
   - sends verification, booking confirmation, and cancellation emails to Mailpit SMTP
   - retries failures with bounded attempts and records the last error
+  - revalidates booking state before sending booking notifications
+  - records email delivery state so retries do not resend completed deliveries
   - marks delivery published only after the email attempt succeeds
 - Added a client notification center with unread count, polling, read-one, and read-all interactions.
 
