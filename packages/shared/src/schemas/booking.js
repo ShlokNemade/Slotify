@@ -68,3 +68,7 @@ export const rescheduleBookingSchema = z.object({
 export const cancelBookingSchema = z.object({
   reason: z.string().trim().min(3).max(500),
 });
+
+export const updateBookingStatusSchema = z.object({
+  status: z.enum([BookingStatus.COMPLETED, BookingStatus.NO_SHOW]),
+});

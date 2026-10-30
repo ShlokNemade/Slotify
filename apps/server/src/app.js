@@ -12,6 +12,7 @@ import { serviceRouter } from './routes/service-routes.js';
 import { staffRouter } from './routes/staff-routes.js';
 import { exceptionRouter } from './routes/exception-routes.js';
 import { availabilityRouter } from './routes/availability-routes.js';
+import { bookingManagementRouter, bookingRouter } from './routes/booking-routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { NotFoundError } from './errors/index.js';
 
@@ -47,6 +48,8 @@ export function createApp() {
   app.use('/api/v1/businesses/:businessId/availability', availabilityRouter);
   app.use('/api/v1/admin', adminRouter);
   app.use('/api/v1/directory', directoryRouter);
+  app.use('/api/v1/bookings', bookingRouter);
+  app.use('/api/v1/businesses', bookingManagementRouter);
 
   // 4. Fallback 404 handler
   app.use((_req, _res, next) => {

@@ -111,6 +111,12 @@ export async function initializeIndexes(database) {
   await database
     .collection('bookings')
     .createIndex({ customerId: 1, startTime: 1 }, { name: 'idx_bookings_customer_time' });
+  await database
+    .collection('bookings')
+    .createIndex(
+      { 'segments.staffId': 1, 'segments.startTime': 1 },
+      { name: 'idx_bookings_segment_staff_time' }
+    );
 
   // 7. Outbox
   await database
