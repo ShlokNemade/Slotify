@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "seed:demo": "node scripts/seed-demo-data.js"
   },
   "devDependencies": {
     "eslint": "^9.21.0",

@@ -20,6 +20,7 @@
   - Schedule expansion, tenant exceptions with advisory conflict warnings, pure slot engine (`slot-engine.js`), and public slots API.
 - **Transactional booking creation, customer cancellation, owner status management, and React/Vite client booking flow.**
 - **Asynchronous outbox notification worker, Mailpit delivery, notification APIs, and client notification center.**
+- **Client account creation/sign-in surface and isolated local demo seed:** `npm run seed:demo` (remove with `npm run seed:demo -- --reset`).
 - **Test Baseline:** `npm test` -> 123/123 passing. `npm run lint` -> clean. Client remains development-only; no production build artifacts are required.
 
 ## 2. Binding Rules for Next Phases

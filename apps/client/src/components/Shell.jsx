@@ -8,6 +8,7 @@ export function Shell({ children, onNavigate }) {
         <nav aria-label="Primary navigation">
           <button onClick={() => onNavigate('/')}>Explore</button>
           <button onClick={() => onNavigate('/my-bookings')}>My bookings</button>
+          <button onClick={() => onNavigate('/account')}>Account</button>
           <NotificationCenter />
         </nav>
       </header>

@@ -26,6 +26,10 @@
   - authenticated booking confirmation
   - customer booking list and cancellation
   - responsive, token-based styling with keyboard-accessible native controls and reduced-motion support
+- Completed the customer account surface:
+  - development client sign-up flow backed by `POST /api/v1/auth/register`
+  - development verification-token handoff and sign-in after registration
+  - account page with session profile and sign-out
 
 ## Invariants preserved
 
@@ -39,3 +43,4 @@
 - `npm test`: **123 tests passed, 0 failed**
 - `npm run lint`: clean after client JSX variable handling
 - `npm run lint`: clean; client development entrypoints and Vite configuration reviewed
+- `npm run seed:demo`: local demo customer, owner, approved business, services, and staff seeded
