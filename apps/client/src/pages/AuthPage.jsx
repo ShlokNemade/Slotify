@@ -47,6 +47,8 @@ export function AuthPage({ onNavigate }) {
       <p className="profile-description">Create an account to reserve appointments and keep every booking in one place.</p>
       <ErrorMessage message={error} />
       <AuthForm onComplete={() => onNavigate('/')} initialMode="signin" />
+      <button className="text-button" onClick={() => onNavigate('/account/reset')}>Forgot your password?</button>
+      <button className="text-button" onClick={() => onNavigate('/account/verify')}>Verify an email token</button>
     </section>
   );
 }
