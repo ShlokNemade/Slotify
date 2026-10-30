@@ -29,4 +29,4 @@
 
 - `npm test`: **123 tests passed, 0 failed**
 - `npm run lint`: clean
-- `npm run build --workspace=@slotify/client`: passed
+- `npm run lint`: clean; client development entrypoints and Vite configuration reviewed

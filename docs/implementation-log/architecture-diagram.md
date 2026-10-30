@@ -1,9 +1,9 @@
 # Slotify — Application Architecture Diagram
 
 **Document:** `docs/implementation-log/architecture-diagram.md`
-**Status:** As-built after Phase 02 (commit `7edb704`)
+**Status:** As-built after Phase 05
 **Rendered with:** Mermaid — paste into any Mermaid-enabled viewer (GitHub renders it natively)
-**Convention:** solid arrows = implemented and verified; dashed borders/arrows = planned, not yet implemented (Phase 03+)
+**Convention:** solid arrows = implemented and verified; dashed borders/arrows = planned, not yet implemented (Phase 06+)
 
 ---
 
@@ -47,6 +47,8 @@ flowchart TB
             StaffRoutes["staff-routes<br/>CRUD + deactivate"]
             AdminRoutes["admin-routes<br/>list, review (approve/reject)"]
             DirectoryRoutes["directory-routes<br/>public search + profile by slug"]
+            BookingRoutes["booking-routes<br/>create, list, cancel, owner status"]
+            NotificationRoutes["notification-routes<br/>list, read, read-all"]
             HealthRoutes["health-routes<br/>/health, /ready"]
         end
 
@@ -57,6 +59,8 @@ flowchart TB
             StaffService["staff-service"]
             AdminService["admin-service<br/>bootstrapAdmin, review decisions"]
             DirectoryService["directory-service<br/>allowlist projections,<br/>completeness gating"]
+            BookingService["booking-service<br/>authoritative transaction,<br/>idempotency, cancellation"]
+            NotificationService["notification-service<br/>owned notification reads"]
         end
     end
 
@@ -69,15 +73,14 @@ flowchart TB
         StaffColl[("staff")]
         AuditColl[("audit_events<br/>append-only")]
         Outbox[("outbox<br/>status/attempts index")]
+        Bookings[("bookings<br/>idempotency + staff/time indexes")]
+        Notifications[("notifications<br/>user/read indexes")]
     end
 
     subgraph Async["Asynchronous Notification Pipeline (Phase 5)"]
         direction LR
-        Publisher["outbox publisher<br/>(planned)"]
-        RMQ[("RabbitMQ 3.13<br/>default exchange (planned)")]
-        Workers["notification workers<br/>idempotent (planned)"]
+        Workers["notification worker<br/>idempotent polling"]
         Mailpit["Mailpit SMTP sandbox<br/>:8025 (ready)"]
-        DLQ["dead-letter queue<br/>(planned)"]
     end
 
     subgraph Infra["Local Infrastructure — Docker Compose"]
@@ -97,6 +100,8 @@ flowchart TB
     StaffRoutes --> StaffService
     AdminRoutes --> AdminService
     DirectoryRoutes --> DirectoryService
+    BookingRoutes --> BookingService
+    NotificationRoutes --> NotificationService
 
     AuthService --> Users
     AuthService --> Sessions
@@ -111,12 +116,13 @@ flowchart TB
     DirectoryService --> Businesses
     DirectoryService --> ServicesColl
     DirectoryService --> StaffColl
+    BookingService --> Bookings
+    BookingService --> Outbox
+    NotificationService --> Notifications
 
-    Outbox -.->|"Phase 5 workers consume"| Publisher
-    Publisher --> RMQ
-    RMQ --> Workers
+    Outbox -->|"worker polls"| Workers
     Workers --> Mailpit
-    Workers -.-> DLQ
+    Workers --> Notifications
 
     Infra --- Mongo
     Infra --- Rabbit
@@ -172,5 +178,6 @@ stateDiagram-v2
 
 - **Tenant isolation:** every business-owned collection row carries `businessId`; owner routes resolve through `requireBusinessOwnership`.
 - **Indexes (created at boot in `db/mongo.js`):** unique user email; unique session token hash + TTL; unique business slug; services/staff by business+active; unique booking idempotency; bookings by business/status/time and customer/time; outbox processing; audit by business/time; restrictions lookup.
-- **Outbox pattern:** registration/verification, password reset, and admin review decisions all write outbox events transactionally-close to their state change; a Phase 5 publisher/worker chain consumes them (dashed in diagram).
-- **Planned (dashed):** Cloudflare Worker edge rate limiting (Phase 6), RabbitMQ/Mailpit pipeline (Phase 5), availability engine read/write path (Phase 3), booking transaction (Phase 4).
+- **Outbox pattern:** registration/verification, password reset, admin review, booking confirmation, and booking cancellation write outbox events; the Phase 5 worker polls them, creates idempotent notifications, and sends SMTP mail.
+- **Implemented:** availability engine and booking transaction (Phases 3–4), polling notification worker and client notification center (Phase 5).
+- **Planned (dashed):** Edge rate limiting (Phase 6), owner/admin client portals (Phase 7), evaluation seed package (Phase 8).

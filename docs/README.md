@@ -1,35 +1,28 @@
-# Slotify
+# Slotify Documentation Index
 
-Slotify is a multi-tenant appointment-booking platform and a demonstration of edge-based distributed rate limiting. This is a **requirements and design proposal**, not an instruction to begin implementation.
+Multi-tenant appointment-booking platform with edge-based distributed rate limiting (College Mini-Project MVP).
 
-## Stack proposed
+## System Invariants
 
-- Frontend: React + Vite + JavaScript
-- API: Node.js + Express + JavaScript
-- Database: MongoDB with transactions and indexes
-- Edge: Cloudflare Workers + KV, plus stronger coordination where required
-- Notifications: RabbitMQ, transactional outbox, and workers
-- Delivery: local demonstrable setup first; optional free-tier deployment documented
+1. **Pure JavaScript:** Strictly `.js` / `.jsx`. No TypeScript.
+2. **Authoritative Backend:** Database commits in MongoDB `rs0` are authoritative; slot reads and rate limiters are advisory.
+3. **Tenant Isolation:** All business entities scoped by `businessId`.
+4. **No Silent Schedule Changes:** Blocks never cancel or mutate confirmed bookings.
+5. **Async Notifications:** Delivery occurs asynchronously via outbox worker; does not block booking confirmation.
+6. **Local Commits Only:** Never push to remote. Conventional commit format.
 
-## Documents
+## Documentation Index
 
-- `docs/AGENTS.md` — AI coding-agent workflow and invariants
-- `docs/requirements.md` — product requirements and business rules
-- `docs/ui-ux.md` — design direction, navigation, and page behavior
-- `docs/architecture.md` — system boundaries, flows, and failure strategy
-- `docs/data-api.md` — logical data model and API conventions
-- `docs/security.md` — authentication, authorization, and privacy
-- `docs/rate-limiting.md` — assignment-specific rate-limiting design
-- `docs/decisions.md` — decisions, rationale, alternatives, and trade-offs
-- `docs/testing-operations.md` — tests, benchmarks, monitoring, local setup
-- `docs/implementation-phases.md` — phased implementation sequence
-- `docs/open-questions.md` — remaining technical decisions
-
-## Non-negotiable boundaries
-
-1. Rate limiting is not booking concurrency control.
-2. Backend booking validation and commit are authoritative.
-3. Multi-service booking is all-or-nothing.
-4. Booking confirmation never waits for email delivery.
-5. Cloudflare KV is eventually consistent and cannot by itself guarantee atomic global counters.
-6. Verify free-tier quotas and provider terms when implementation begins; no paid service is mandatory for local demonstration.
+- [`docs/AGENTS.md`](./AGENTS.md): Machine-actionable agent instructions and coding rules.
+- [`docs/SESSION_HANDOFF.md`](./SESSION_HANDOFF.md): Live project state, completed increments, and immediate next phase.
+- [`docs/implementation-phases.md`](./implementation-phases.md): College MVP roadmap (Phases 00–08) and deferred Phase X.
+- [`docs/requirements.md`](./requirements.md): Functional requirements, user roles, state machines, and edge rate limiting.
+- [`docs/architecture.md`](./architecture.md): Topology, component boundaries, edge rate limiting, and booking read/write flows.
+- [`docs/data-api.md`](./data-api.md): Schema definitions, database indexes, and API route registry.
+- [`docs/decisions.md`](./decisions.md): Architecture Decision Records (ADR-001 through ADR-011).
+- [`docs/security.md`](./security.md): Authentication, sessions, RBAC, and data sanitization.
+- [`docs/testing-operations.md`](./testing-operations.md): Setup, test commands, and concurrency verification rules.
+- [`docs/ui-ux.md`](./ui-ux.md): React single-page application specifications (Customer, Owner, Admin).
+- [`docs/rate-limiting.md`](./rate-limiting.md): Edge distributed rate-limiting design (sliding-window token bucket + sync batching).
+- [`docs/open-questions.md`](./open-questions.md): Decisions log and MVP scoping matrix.
+- [`docs/implementation-log/`](./implementation-log/): Single per-phase logs (`phase-00.md` through `phase-05.md`).

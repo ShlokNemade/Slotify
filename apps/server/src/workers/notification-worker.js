@@ -36,7 +36,7 @@ function messageFor(event, _user) {
 }
 
 function recipientFor(event) {
-  return event.payload?.userId ?? event.payload?.customerId;
+  return event.payload?.userId ?? event.payload?.customerId ?? event.payload?.ownerId;
 }
 
 async function claimNextEvent() {
