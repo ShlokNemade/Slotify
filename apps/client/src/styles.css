@@ -41,6 +41,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .edit-grid input { min-width: 0; }
 .staff-shifts { display: grid; grid-column: 1 / -1; gap: 8px; padding: 12px; border: 1px solid var(--color-border); border-radius: 10px; background: #f7fbfd; }
 .staff-shift-row { display: grid; grid-template-columns: 1fr 112px auto 112px; align-items: center; gap: 8px; color: var(--color-muted-foreground); text-transform: capitalize; }
+.directory-filters { display: grid; gap: 18px; margin-bottom: 36px; }
+.filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 28px; }
 .error-message { color: #991b1b; background: #fff1f2; border: 1px solid #fecdd3; padding: 12px 14px; border-radius: 10px; }
 .loading { color: var(--color-muted-foreground); }
 @media (max-width: 650px) {
@@ -48,6 +51,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   nav button { padding: 8px; }
   .page { width: min(100% - 28px, 1120px); padding-top: 40px; }
   .edit-grid { grid-template-columns: 1fr; }
+  .filter-grid { grid-template-columns: 1fr; }
   .manage-card { align-items: stretch; flex-direction: column; }
   .manage-card .button-row { width: 100%; }
   .manage-card .button-row button { flex: 1; }
