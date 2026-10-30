@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createBusiness,
+  listBusinessesForOwner,
   getBusinessById,
   updateBusiness,
   submitBusinessForReview,
@@ -13,6 +14,20 @@ import { requireBusinessOwnership } from '../middleware/tenant.js';
 import { UserRole } from '@slotify/shared';
 
 export const businessRouter = Router();
+
+businessRouter.get(
+  '/owned',
+  authenticate,
+  requireRole(UserRole.OWNER),
+  async (req, res, next) => {
+    try {
+      const businesses = await listBusinessesForOwner(req.user.id);
+      res.status(200).json({ success: true, data: { businesses } });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /**
  * Create a new draft business. Requires an authenticated, email-verified owner.

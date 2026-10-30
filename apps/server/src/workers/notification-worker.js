@@ -35,6 +35,20 @@ function messageFor(event, _user) {
       subject: 'Reset your Slotify password',
     };
   }
+  if (event.eventType === OutboxEventType.BUSINESS_APPROVED) {
+    return {
+      title: 'Business approved',
+      message: `${event.payload?.businessName ?? 'Your business'} is now visible in the Slotify directory.`,
+      subject: 'Your Slotify business was approved',
+    };
+  }
+  if (event.eventType === OutboxEventType.BUSINESS_REJECTED) {
+    return {
+      title: 'Business needs changes',
+      message: `${event.payload?.businessName ?? 'Your business'} needs updates before it can be approved.`,
+      subject: 'Action needed for your Slotify business',
+    };
+  }
   throw new Error(`Unsupported notification event type: ${event.eventType}`);
 }
 

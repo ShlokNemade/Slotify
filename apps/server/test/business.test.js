@@ -190,6 +190,25 @@ describe('Business Setup API Integration Tests', { concurrency: 1 }, () => {
       assert.equal(res.body.data.business.slug, 'serenity-spa');
     });
 
+    describe('GET /api/v1/businesses/owned', () => {
+      it('lists only businesses owned by the authenticated owner', async () => {
+        const { token } = await createVerifiedOwner(app, 'owner@example.com');
+        await request(app)
+          .post('/api/v1/businesses')
+          .set('Authorization', 'Bearer ' + token)
+          .send(VALID_BUSINESS)
+          .expect(201);
+
+        const res = await request(app)
+          .get('/api/v1/businesses/owned')
+          .set('Authorization', 'Bearer ' + token)
+          .expect(200);
+
+        assert.equal(res.body.data.businesses.length, 1);
+        assert.equal(res.body.data.businesses[0].slug, VALID_BUSINESS.slug);
+      });
+    });
+
     it('rejects cross-tenant reads with 403', async () => {
       const { token: owner1Token } = await createVerifiedOwner(app, 'owner1@example.com');
       const createRes = await request(app)

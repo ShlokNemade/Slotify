@@ -82,8 +82,23 @@ export async function createBusiness({ ownerId, data }) {
     if (err && err.code === 11000) {
       throw new ConflictError('A business with this slug already exists');
     }
+
     throw err;
   }
+}
+
+/**
+ * List businesses owned by a user for the owner workspace.
+ * @param {string} ownerId
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+export async function listBusinessesForOwner(ownerId) {
+  const docs = await getDb()
+    .collection('businesses')
+    .find({ ownerId: new ObjectId(ownerId) })
+    .sort({ createdAt: -1 })
+    .toArray();
+  return docs.map(toBusinessResponse);
 }
 
 /**
