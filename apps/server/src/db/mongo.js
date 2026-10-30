@@ -126,4 +126,24 @@ export async function initializeIndexes(database) {
   await database
     .collection('restrictions')
     .createIndex({ businessId: 1, customerId: 1, status: 1 }, { name: 'idx_restrictions_lookup' });
+
+  // 10. Availability exceptions (tenant-scoped; date + staff lookups)
+  await database
+    .collection('availability_exceptions')
+    .createIndex(
+      { businessId: 1, date: 1 },
+      { name: 'idx_exceptions_business_date' }
+    );
+  await database
+    .collection('availability_exceptions')
+    .createIndex(
+      { businessId: 1, staffId: 1 },
+      { name: 'idx_exceptions_business_staff' }
+    );
+  await database
+    .collection('availability_exceptions')
+    .createIndex(
+      { businessId: 1, serviceId: 1 },
+      { name: 'idx_exceptions_business_service' }
+    );
 }

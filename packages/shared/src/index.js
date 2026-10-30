@@ -4,6 +4,7 @@ export * from './schemas/session.js';
 export * from './schemas/business.js';
 export * from './schemas/service.js';
 export * from './schemas/staff.js';
+export * from './schemas/availability.js';
 export * from './schemas/booking.js';
 export * from './schemas/outbox.js';
 export * from './schemas/audit.js';

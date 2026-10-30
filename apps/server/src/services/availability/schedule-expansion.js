@@ -296,6 +296,21 @@ export function expandStaffWorkIntervals({ staff, timeZone, exceptions = [], fro
 }
 
 /**
+ * The calendar date following `dateISO` (business-local arithmetic).
+ * @param {string} dateISO `YYYY-MM-DD`
+ * @param {string} [timeZone='UTC']
+ * @returns {string}
+ */
+export function nextCalendarDate(dateISO, timeZone = 'UTC') {
+  const { year, month, day } = parseCalendarDate(dateISO);
+  const dt = DateTime.fromObject({ year, month, day, hour: 12 }, { zone: timeZone });
+  if (!dt.isValid) {
+    throw new Error(`Invalid calendar date: "${dateISO}"`);
+  }
+  return dt.plus({ days: 1 }).toFormat('yyyy-MM-dd');
+}
+
+/**
  * Convenience date parsing for inputs coming from HTTP query strings:
  * accepts `YYYY-MM-DD`, validates, and returns the business-local date.
  * @param {string} value
