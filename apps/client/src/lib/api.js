@@ -7,6 +7,7 @@ export function getSessionToken() {
 export function setSessionToken(token) {
   if (token) localStorage.setItem('slotify_session', token);
   else localStorage.removeItem('slotify_session');
+  window.dispatchEvent(new Event('slotify:auth-changed'));
 }
 
 export async function api(path, options = {}) {

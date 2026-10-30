@@ -4,17 +4,27 @@ import { api, getSessionToken } from '../lib/api.js';
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState({ notifications: [], unreadCount: 0 });
+  const [authenticated, setAuthenticated] = useState(Boolean(getSessionToken()));
 
   useEffect(() => {
-    if (!getSessionToken()) return undefined;
+    const handleAuthChange = () => {
+      setAuthenticated(Boolean(getSessionToken()));
+      setData({ notifications: [], unreadCount: 0 });
+    };
+    window.addEventListener('slotify:auth-changed', handleAuthChange);
+    if (!authenticated) return () => window.removeEventListener('slotify:auth-changed', handleAuthChange);
     let active = true;
     const load = () => api('/notifications').then((result) => {
       if (active) setData(result);
     }).catch(() => {});
     load();
     const timer = window.setInterval(load, 30000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, []);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('slotify:auth-changed', handleAuthChange);
+    };
+  }, [authenticated]);
 
   async function markRead(notification) {
     if (notification.readAt) return;
@@ -40,7 +50,7 @@ export function NotificationCenter() {
     }));
   }
 
-  if (!getSessionToken()) return null;
+  if (!authenticated) return null;
   return (
     <div className="notification-wrap">
       <button
