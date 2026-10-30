@@ -1,87 +1,113 @@
 # Session Handoff — Slotify
 
 **Last updated:** 2026-10-30 (UTC)
-**Branch:** `main` · HEAD `520362f` · working tree clean
-**Primary detailed source:** `docs/implementation-log/` (per-phase and per-increment logs)
+**Branch:** `main` · working tree clean at latest documented commit
+**Primary detailed source:** `docs/implementation-log/` (per-phase + per-increment logs)
 
 ---
 
 ## 1. Current Phase
 
-**Phase 03 — Availability engine** is the active phase. Phases 00–02 are complete and verified
-(see `phase-02-summary.md`). The availability engine implementation had **not** been started
-before this session.
+**Phase 03 — Availability engine: COMPLETE and verified** (summary:
+`docs/implementation-log/phase-03-summary.md`).
+**Next: Phase 04 — Booking integrity/lifecycle** (guided flow, atomic
+multi-service booking, concurrency-safe assignment, cancel/reschedule/
+proposals, audit/no-show/completion) — NOT started.
 
-## 2. What is completed and verified (do not redo)
+## 2. Completed & Verified (do not redo)
 
-- **Phase 01 (domain/security foundations):** users/sessions/auth (register, verify-email, login,
-  logout, me), tenant isolation middleware (`requireBusinessOwnership`), error envelope, Mongo
-  index bootstrap, Express app skeleton.
-- **Phase 02 increments (all E2E-verified over HTTP):**
-  1. Password reset (non-enumerating, single-use, session revocation) — commit `baa0772`
-  2. Owner business CRUD (draft/create/read/update, unique slug, per-day hours merge) — `0cc0878`
-  3. Services & staff CRUD (tenant-scoped, eligibility membership validation, soft deactivation) — `ef631f9`
-  4. Admin review + bootstrap (idempotent admin CLI, approve/reject + audit + outbox, submit lifecycle) — `55278a7`
-  5. Public directory & profile (allowlisted projections, approval + completeness gate, filters/pagination) — `7853365`
-- Infrastructure: Docker Compose `slotify-mongodb` (mongo:7.0, single-node `rs0`), RabbitMQ, Mailpit.
-  Config in `apps/server/src/config/index.js` has safe defaults (works without `.env`).
+- Phases 00–02: domain/security foundations, auth (incl. password reset),
+  owner business CRUD, services/staff CRUD, admin review/bootstrap, public
+  directory/profile. All E2E-verified over HTTP (see logs).
+- **Phase 03 increments (all verified, local commits only):**
+  1. `17c173c` — DST-correct schedule expansion core + interval math (27 unit tests).
+     DST policy: nonexistent wall times roll forward; ambiguous take first occurrence.
+  2. `a74837b` — availability exceptions (`availability_exceptions` collection,
+     tenant-scoped owner CRUD at `/api/v1/businesses/:businessId/exceptions`)
+     with booking-conflict WARNINGS that never mutate bookings (11 tests + 17-step E2E).
+  3. Pure slot engine (`apps/server/src/services/availability/slot-engine.js`):
+     grid at `defaultSlotIntervalMinutes` anchored at local midnight; buffered
+     span must fit fully; `OCCUPYING_BOOKING_STATUSES = ['pending','confirmed']`;
+     `selectEligibleStaff` (active + eligibleStaffIds + requiredQualifications);
+     `mergeAnyStaffSlots`; horizon/notice clamps (17 unit tests).
+  4. Availability HTTP surfaces: owner `GET .../availability` (per-staff) and
+     public `GET /directory/businesses/:slug/slots` (merged any-staff, approved-gated).
+     7 integration tests + 24-step E2E (booking conflict scoping, closure vs
+     booking survival, no shift-template leak, draft 404).
+  - Docs commits: `61e8627`, `0582813`, plus phase-03 summary + increments 03/04 logs.
 
-## 3. Implemented but unverified / minor known issues
+## 3. Verification Baseline (as of Phase 03 completion)
 
-- Register endpoint duplicate-email race (see `phase-01-handoff-audit.md` §5.4) — only a
-  pre-check + generic 500 backstop, not fixed yet.
-- Outbox writes in some flows are non-transactional (audit §5.5). Phase 5 will revisit.
-- One owner may currently create multiple businesses (requirements imply one). Not enforced.
-- Outbox events (`business.approved`, `business.rejected`, password-reset) accumulate as
-  `pending`; there is no publisher/worker yet (Phase 5).
+- `npm test` (root): **114/114 pass** against live `rs0` replica set.
+- `npm run lint`: clean.
+- E2E method: real `node apps/server/src/server.js` + throwaway `.mjs` scripts
+  (kept in `%TEMP%\opencode\slotify-e2e\`, NOT in repo). HTTP-level only; no
+  Playwright/client exists yet.
 
-## 4. How verification was done
+## 4. Binding Design Rules Established in Phase 03 (enforce in Phase 04)
 
-- `npm test` (root) → shared schema unit tests + **52/52 server integration tests pass** against
-  live `rs0` replica set (`node --test --test-concurrency=1`).
-- `npm run lint` → 0 errors/0 warnings.
-- E2E so far = **HTTP-level**, against real `node src/server.js` (no Playwright/client exists yet).
-- Docker Desktop had to be started manually; stack via `docker compose up -d mongodb rabbitmq mailpit`.
+- Half-open `[start,end)` UTC intervals; business-local `YYYY-MM-DD` days.
+- DST: gap → roll forward; ambiguity → first occurrence (unit-tested, NYC 2026).
+- Exceptions: date closure = whole local day; override = complement of
+  windows is blocked; instant block = exact range. Conflict list is advisory;
+  blocks NEVER alter/cancel bookings (invariant 5).
+- Slots are advisory reads; **the booking write path must revalidate via the
+  same engine inputs and enforce atomic staff-interval exclusivity
+  (transactions; single-node rs0 is transaction-capable)** — cached/rate-limit
+  responses can never authorize a commit.
+- Buffer semantics: before → `[start-buffer, start+duration)`; after →
+  `[start, start+duration+buffer)`; between ≡ after for single segment (real
+  between-merge belongs to the Phase 04 multi-service composer).
 
-## 5. Environment quick facts
+## 5. Known Issues / Watch Items
 
-- Node v24, npm workspaces: `packages/shared` (Zod schemas, `@slotify/shared`), `apps/server`.
-- No client app yet. Pure JavaScript everywhere (no TS) — mandatory invariant.
-- Auth via Bearer bearer token in tests; HttpOnly cookie sessions also exist.
-- Admin bootstrap: `npm run bootstrap:admin` (in `apps/server`); test suites wipe the `users`
-  collection between runs, so re-run bootstrap after test runs if you need the admin.
-- **E2E incident pattern to remember:** wiped admin/service state after test runs; if an E2E flow
-  fails with "not found", check DB state, not just code (see increment-05 log §9).
+- `uniq_booking_idempotency` (`businessId, idempotencyKey`, no partial filter)
+  collides on missing keys (E11000 in tests). Phase 04 must always generate
+  keys or add `partialFilterExpression`.
+- Booking segment shape consumed by conflict/scan code:
+  `segments: [{ staffId, service: { serviceId, ... }, startTime, endTime }]`
+  with `Date` instants — Phase 04 writes must conform (or update those queries).
+- Minor Phase 01 carries: register duplicate race, non-transactional outbox
+  writes, one-owner-many-businesses not enforced.
+- Exceptions conflict scan loads tenant bookings without segment-level index
+  (fine now; revisize with Phase 04 booking indexes).
+- `docs/data-api.md` is "proposed, not frozen" — update as-built notes if
+  Phase 04 changes booking document shapes.
 
-## 6. Next task (Phase 03, increment 01)
+## 6. Environment Notes
 
-**Goal:** DST-correct schedule *expansion core* — pure functions (no DB) that turn stored
-recurring schedules (business hours, staff shifts/breaks/leave, date exceptions) into concrete
-UTC half-open intervals for a date range, using the business IANA time zone.
+- Docker Desktop may need starting manually; then `docker compose up -d
+  mongodb rabbitmq mailpit`; Mongo must report `rs0` healthy before tests.
+- Config defaults live in `apps/server/src/config/index.js` (works without `.env`).
+- Test suites wipe `users`; re-run `npm run bootstrap:admin` (in apps/server)
+  after test runs if you need the admin for manual flows (tests bootstrap
+  their own admin).
+- Server startup for E2E: `node apps/server/src/server.js` (background); RESTART
+  IT after source edits — a stale process serving old code cost 2 E2E debugging
+  cycles in this session.
+- Timezone fixtures in tests: 2026-03-02/2026-03-08 (past!) — current-phase tests
+  used 2026-11-02 (Monday); remember notice-window semantics when picking dates.
 
-Acceptance criteria:
-1. Pure module (`apps/server/src/services/availability/*` or similar) + unit tests (no Mongo);
-   tests pass with `npm test`.
-2. Weekly business-hour windows expand per business-local calendar date; closed days yield nothing.
-3. **DST handled explicitly:** spring-forward gap and fall-back ambiguity in a real TZ (e.g.
-   `America/New_York`) covered by unit tests. Gaps roll wall times forward to the transition
-   instant; ambiguous times take the earlier offset. Document the policies in code + log.
-4. Staff shifts expand, breaks subtract, leave subtracts; date-specific exceptions (closed or
-   override-hours per business-local date) apply. Staff shifts are interpreted in the business TZ.
-5. No DB writes, no route changes yet — expansion is pure and reusable by the later slot engine.
-6. Implementation log `docs/implementation-log/phase-03-increment-01-*.md` with the above template.
-7. Modular local commit (`feat(availability): ...`); **never push**.
+## 7. Next Task — Phase 04, first increment (suggested slice)
 
-Then: increment 02 = availability-block/exception data model + tenant-scoped owner CRUD with
-conflict-warning scan against confirmed bookings (never alter bookings); increment 03 = slot
-computation with notice/horizon/duration/buffers/eligibility + candidate generation at
-`defaultSlotIntervalMinutes`; increment 04 = slot-computation API + integration tests + HTTP E2E.
+**Goal:** booking document lifecycle + atomic single-service creation.
+1. Shared booking schemas already exist (`packages/shared/src/schemas/booking.js`:
+   create/reschedule/cancel, segments with service snapshot, `staffId|'any'`,
+   idempotencyKey). Review and extend for snapshot population server-side.
+2. Booking write service: validate (verified customer, approved+published
+   business, active service, eligible staff or 'any' resolution), revalidate
+   availability via slot-engine inputs, then commit atomically (Mongo
+   transaction with a conflict guard — e.g., re-check active booking overlap
+   inside the transaction and/or a unique per staff/time approach; document
+   the exact guarantee honestly, rs0 supports multi-doc transactions).
+3. Outbox `booking.confirmed` event written in the same transaction (ADR-009).
+4. Integration tests: happy path, cross-tenant rejection, unverified customer
+   rejection, 'any' resolution, idempotent retry (same key → same booking,
+   not a duplicate), concurrent double-booking test (two parallel creates,
+   exactly one succeeds), transaction rollback test.
+5. HTTP routes + docs + log + commit. Then subsequent increments: reschedule,
+   cancel + policy, customer-facing getters, no-show/complete, audit events.
 
-## 7. Constraints to keep enforcing (from AGENTS.md / docs)
-
-- JavaScript only (`.js`/`.jsx`), JSDoc welcome; Zod at trust boundaries.
-- All bookable state authoritative in DB; rate limits and caches never gate correctness.
-- Multi-service bookings atomic; schedule blocks never silently alter bookings.
-- Tenant isolation (`businessId`) on every business-owned collection.
-- Local commits only, conventional commit messages, tiny increments, docs updated per increment.
-- Use installed **ui-ux-pro-max** skill and `docs/ui-ux.md` before any UI work (client phase).
+Acceptance criteria: single-service creation returns 201 with segments
+snapshotted server-side; parallel identical requests cannot both confirm the
+same staff interval; booking + outbox event commit or fail together.
