@@ -7,5 +7,6 @@ export * from './schemas/staff.js';
 export * from './schemas/availability.js';
 export * from './schemas/booking.js';
 export * from './schemas/outbox.js';
+export * from './schemas/notification.js';
 export * from './schemas/audit.js';
 export * from './schemas/restriction.js';

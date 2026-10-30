@@ -122,6 +122,15 @@ export async function initializeIndexes(database) {
   await database
     .collection('outbox')
     .createIndex({ status: 1, attempts: 1, createdAt: 1 }, { name: 'idx_outbox_processing' });
+  await database
+    .collection('notifications')
+    .createIndex({ userId: 1, createdAt: -1 }, { name: 'idx_notifications_user_time' });
+  await database
+    .collection('notifications')
+    .createIndex(
+      { userId: 1, sourceEventId: 1 },
+      { unique: true, name: 'uniq_notifications_source_event' }
+    );
 
   // 8. Audit Events
   await database

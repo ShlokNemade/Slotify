@@ -19,6 +19,9 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(24 * 7), // 7 days
+  SMTP_HOST: z.string().default('localhost'),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  SMTP_FROM: z.string().email().default('notifications@slotify.local'),
 });
 
 const parsed = envSchema.safeParse(process.env);
