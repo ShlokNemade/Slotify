@@ -14,10 +14,10 @@ durations/buffers, notice/horizon."* All shipped as backend (+ endpoints) slices
 
 | Increment | Deliverable | Log | Commit |
 |---|---|---|---|
-| 01 | Pure schedule expansion core (DST-correct) + interval math | `phase-03-increment-01-schedule-expansion.md` | `17c173c` |
+| 01 | DST-correct schedule expansion core + interval math | `phase-03-increment-01-schedule-expansion.md` | `17c173c` |
 | 02 | Availability exceptions persistence + owner CRUD + conflict warnings | `phase-03-increment-02-availability-exceptions.md` | `a74837b` |
-| 03 | Pure slot engine (duration/buffers/eligibility/notice/horizon/bookings) | `phase-03-increment-03-slot-engine.md` | *(this commit)* |
-| 04 | Availability HTTP surfaces (owner preview + public slots) | `phase-03-increment-04-slots-api.md` | *(same commit as 03 landing)* |
+| 03 | Pure slot engine (duration/buffers/eligibility/notice/horizon/bookings) | `phase-03-increment-03-slot-engine.md` | `90cd3d3` |
+| 04 | Availability HTTP surfaces (owner preview + public slots) | `phase-03-increment-04-slots-api.md` | `90cd3d3` |
 
 ## 2. Verification State at Phase End
 

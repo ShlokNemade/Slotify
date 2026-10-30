@@ -104,7 +104,7 @@ span-end arithmetic and were corrected against the engine's output
 
 ## 8. Git Commit
 
-*(hash recorded after commit)*
+`feat(availability): add pure slot engine and availability slots API` — `90cd3d3`
 
 ## 9. Next Increment
 

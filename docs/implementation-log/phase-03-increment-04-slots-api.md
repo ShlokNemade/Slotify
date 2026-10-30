@@ -91,7 +91,7 @@ Public:   GET /api/v1/directory/businesses/:slug/slots?serviceId&fromDate&toDate
 
 ## 9. Git Commit
 
-*(hash recorded after commit)*
+`feat(availability): add pure slot engine and availability slots API` — `90cd3d3`
 
 ## 10. Next Phase
 
