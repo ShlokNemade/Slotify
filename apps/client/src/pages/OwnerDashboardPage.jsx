@@ -4,6 +4,15 @@ import { ErrorMessage } from '../components/ErrorMessage.jsx';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const emptyHours = () => Object.fromEntries(DAYS.map((day) => [day, { isOpen: false, windows: [] }]));
+function toSlug(value) {
+  const slug = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+  return slug.length >= 3 ? slug : `${slug || 'business'}-app`;
+}
 
 function Field({ label, children }) {
   return <label className="field">{label}{children}</label>;
@@ -23,7 +32,8 @@ function BusinessForm({ business, onSaved }) {
     event.preventDefault(); setSaving(true); setError('');
     try {
       const path = business ? `/businesses/${business.id}` : '/businesses';
-      const data = await api(path, { method: business ? 'PATCH' : 'POST', body: JSON.stringify(form) });
+      const payload = business ? form : { ...form, slug: toSlug(form.name) };
+      const data = await api(path, { method: business ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
       onSaved(data.business);
     } catch (err) { setError(err.message); } finally { setSaving(false); }
   }
@@ -31,7 +41,11 @@ function BusinessForm({ business, onSaved }) {
     <form className="manage-form" onSubmit={submit}>
       <div className="form-grid">
         <Field label="Business name"><input required value={form.name} onChange={(e) => update('name', e.target.value)} /></Field>
-        <Field label="URL slug"><input required value={form.slug} onChange={(e) => update('slug', e.target.value)} /></Field>
+        <div className="field">
+          <span>Public URL</span>
+          <output className="generated-value">/businesses/{business?.slug ?? toSlug(form.name)}</output>
+          {!business && <small className="small-note">Generated automatically from your business name.</small>}
+        </div>
         <Field label="Category"><input required value={form.category} onChange={(e) => update('category', e.target.value)} /></Field>
         <Field label="Time zone"><input required value={form.timeZone} onChange={(e) => update('timeZone', e.target.value)} /></Field>
         <Field label="Address"><input required value={form.location.address} onChange={(e) => updateLocation('address', e.target.value)} /></Field>
@@ -57,6 +71,7 @@ function HoursForm({ business, onSaved }) {
   }
   return (
     <form className="manage-form" onSubmit={save}>
+      <p className="small-note">These hours are saved to your business immediately. Platform approval only controls when your profile appears in the public directory.</p>
       <div className="hours-grid">
         {DAYS.map((day) => (
           <div className="hours-row" key={day}>
@@ -197,7 +212,7 @@ export function OwnerDashboardPage({ onNavigate }) {
   return <section className="page">
     <div className="workspace-header"><div><p className="eyebrow">OWNER WORKSPACE</p><h1>{business.name}</h1><p className="muted">{business.status.replace('_', ' ')} · {business.location.city}, {business.location.country}</p></div><select value={business.id} onChange={(e) => setBusiness(businesses.find((item) => item.id === e.target.value))}>{businesses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
     <nav className="workspace-tabs" aria-label="Business management"><div>{tabs.map(([value, label]) => <button className={tab === value ? 'active' : ''} key={value} onClick={() => setTab(value)}>{label}</button>)}</div></nav>
-    {tab === 'overview' && <div className="workspace-columns"><div className="surface-card"><h2>Business profile</h2><BusinessForm business={business} onSaved={refreshBusiness} /></div><div className="surface-card"><h2>Operating hours</h2><HoursForm business={business} onSaved={refreshBusiness} /><div className="review-actions">{business.status === 'draft' || business.status === 'rejected' ? <SubmitButton business={business} onSaved={refreshBusiness} /> : <p className="muted">Review status: {business.status.replace('_', ' ')}</p>}</div></div></div>}
+    {tab === 'overview' && <div className="workspace-columns"><div className="surface-card"><h2>Business profile</h2><BusinessForm business={business} onSaved={refreshBusiness} /></div><div className="surface-card"><h2>Operating hours</h2><HoursForm business={business} onSaved={refreshBusiness} /><div className="review-actions">{business.status === 'draft' || business.status === 'rejected' ? <><p className="small-note">When your profile, services, staff, and hours are ready, submit it for review. A platform administrator approves businesses before they become publicly bookable.</p><SubmitButton business={business} onSaved={refreshBusiness} /></> : <p className="muted">Review status: {business.status.replace('_', ' ')}. {business.status === 'pending_approval' ? 'A platform administrator is reviewing your profile.' : business.status === 'approved' ? 'Your profile is approved and can appear in the directory.' : ''}</p>}</div></div></div>}
     {tab === 'services' && <div className="surface-card"><h2>Services</h2><ServicesPanel businessId={business.id} /></div>}
     {tab === 'staff' && <div className="surface-card"><h2>Staff</h2><StaffPanel businessId={business.id} /></div>}
     {tab === 'exceptions' && <div className="surface-card"><h2>Schedule blocks</h2><ExceptionsPanel business={business} services={services} staff={staff} /></div>}
